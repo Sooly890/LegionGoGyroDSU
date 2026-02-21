@@ -2,7 +2,8 @@
 
 A project to get a Motion (Gyro and Accel) DSU to work on the Legion Go S SteamOS edition.
 
-IMPORTANT NOTE, READ FIRST: This project does work, however, for some reason, the IIO (Industrial I/O) devices this project relies on does not seem to always exist. Please look below for the "solution".
+~~IMPORTANT NOTE, READ FIRST: This project does work, however, for some reason, the IIO (Industrial I/O) devices this project relies on does not seem to always exist. Please look below for the "solution".~~
+solved
 
 # Installation
 
