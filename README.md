@@ -12,6 +12,18 @@ Please make sure you have a password by running `passwd` (ignore this if you hav
 
 This will install it to `/LegionGoSGyroDSU`
 
+If you desire, you can change the port by running:
+`sudo nano /etc/systemd/system/lgsdsu.service`
+
+then editing the `LGSDSU_PORT=26760` to whatever you want
+press CTRL+S to save, CTRL+X to exit. Then run:
+
+```
+sudo systemctl daemon-reload
+sudo systemctl enable lgsdsu.service
+sudo systemctl restart lgsdsu.service
+```
+
 # The IIO Issue
 
 As mentioned before, the IIO devices that the project needs (gyro and accelometer) sometimes do not appear. You can "fix" this by installing this, and then running:
