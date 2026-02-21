@@ -63,3 +63,16 @@ Success!
 # Wait, does this actually need Root access?
 
 Yes. This project requires root access to run and install. This is because the project needs to access the IIO devices, which are accessible to normal users, however we need to enable buffering mode on them, which requires root access, otherwise they are simply too slow.
+
+# I want to build this myself, how?
+
+It is fairly straightforward to build, however do not build it on your Legion as that would require setting it up for development, which is not worth it. Instead, with another arch linux machine, run:
+
+```
+git clone https://github.com/Sooly890/LegionGoSGyroDSU
+cd LegionGoSGyroDSU
+sudo pacman -S asio libiio
+scripts/build.sh
+```
+
+and then run `scripts/package.sh` if you want to package it like in the releases.
