@@ -6,12 +6,19 @@ IMPORTANT NOTE, READ FIRST: This project does work, however, for some reason, th
 
 # Installation
 
-Run `curl -fsSL https://raw.githubusercontent.com/Sooly890/LegionGoSGyroDSU/main/scripts/install.sh | bash`
-This will install it to /LegionGoSGyroDSU
+Run
+
+`curl -fsSL https://raw.githubusercontent.com/Sooly890/LegionGoSGyroDSU/main/scripts/install.sh | bash`
+
+This will install it to `/LegionGoSGyroDSU`
 
 # The IIO Issue
 
 As mentioned before, the IIO devices that the project needs (gyro and accelometer) sometimes do not appear. You can "fix" this by installing this, and then running:
 `/LegionGoSGyroDSU/check.sh`
 
-if this says error, you must force shutdown the console, wait 10 mins (not exactly, just a bit of time), and then run the check.sh again. Rinse and repeat until it works, it normally takes a few tries.
+if this says error, you must force shutdown the console, wait 10 mins (not exactly, just a bit of time), and then rrestart.un the check.sh again. Rinse and repeat until it works, it normally takes a few tries.
+
+# Wait, does this actually need Root access?
+
+Yes. This project requires root access to run and install. This is because the project needs to access the IIO devices, which are accessible to normal users, however we need to enable buffering mode on them, which requires root access, otherwise they are simply too slow.
