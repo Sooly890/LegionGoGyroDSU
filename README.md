@@ -60,7 +60,7 @@ Feb 22 08:59:11 steamdeck bash[3529]: Sample size accel: 12
 Success!
 ```
 
-# Wait, does this actually need Root access?
+# Wait, does this actually need root access?
 
 Yes. This project requires root access to run and install. This is because the project needs to access the IIO devices, which are accessible to normal users, however we need to enable buffering mode on them, which requires root access, otherwise they are simply too slow.
 
