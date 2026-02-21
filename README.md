@@ -31,6 +31,35 @@ As mentioned before, the IIO devices that the project needs (gyro and accelomete
 
 if this says error, you must force shutdown the console, wait 10 mins (not exactly, just a bit of time), and then rrestart.un the check.sh again. Rinse and repeat until it works, it normally takes a few tries.
 
+an example of it succeeding: 
+
+```
+(deck@steamdeck ~)$ /LegionGoSGyroDSU/check.sh
+● lgsdsu.service - LegionGoSGyroDSU
+     Loaded: loaded (/etc/systemd/system/lgsdsu.service; enabled; preset: disabled)
+     Active: active (running) since Sun 2026-02-22 08:59:11 NZDT; 6s ago
+ Invocation: 3d53021e9a304393b4615d4954567771
+   Main PID: 3527 (bash)
+      Tasks: 3 (limit: 13932)
+     Memory: 1.2M (peak: 1.9M)
+        CPU: 32ms
+     CGroup: /system.slice/lgsdsu.service
+             ├─3527 /bin/bash /LegionGoSGyroDSU/start.sh
+             └─3529 ./LegionGoSGyroDSU
+
+Feb 22 08:59:11 steamdeck bash[3529]: gyro anglvel_x scale = 0.00174533, sampling_frequency = 100 hz, enabled = 1
+Feb 22 08:59:11 steamdeck bash[3529]: gyro anglvel_y scale = 0.00174533, sampling_frequency = 100 hz, enabled = 1
+Feb 22 08:59:11 steamdeck bash[3529]: gyro anglvel_z scale = 0.00174533, sampling_frequency = 100 hz, enabled = 1
+Feb 22 08:59:11 steamdeck bash[3529]: accel accel_x scale = 0.0980665, sampling_frequency = 100 hz, enabled = 1
+Feb 22 08:59:11 steamdeck bash[3529]: accel accel_y scale = 0.0980665, sampling_frequency = 100 hz, enabled = 1
+Feb 22 08:59:11 steamdeck bash[3529]: accel accel_z scale = 0.0980665, sampling_frequency = 100 hz, enabled = 1
+Feb 22 08:59:11 steamdeck bash[3529]: WARNING: High-speed mode not enabled
+Feb 22 08:59:11 steamdeck bash[3529]: WARNING: High-speed mode not enabled
+Feb 22 08:59:11 steamdeck bash[3529]: Sample size gyro: 12
+Feb 22 08:59:11 steamdeck bash[3529]: Sample size accel: 12
+Success!
+```
+
 # Wait, does this actually need Root access?
 
 Yes. This project requires root access to run and install. This is because the project needs to access the IIO devices, which are accessible to normal users, however we need to enable buffering mode on them, which requires root access, otherwise they are simply too slow.
