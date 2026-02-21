@@ -2,7 +2,7 @@
 Description=LegionGoSGyroDSU
 [Service]
 Environment="LGSDSU_PORT=26760"
-Type=Simple
+Type=simple
 RestartSec=1
 User=root
 ExecStart=/bin/bash /LegionGoSGyroDSU/start.sh
