@@ -18,15 +18,18 @@ cd /LegionGoSGyroDSU
 sudo wget https://github.com/Sooly890/LegionGoSGyroDSU/releases/latest/download/LegionGoSGyroDSU.tar.gz || exit 1
 
 sudo tar -xzvf  LegionGoSGyroDSU.tar.gz || exit 1
-sudo rm LegionGoSGyroDSU.zip
+sudo rm LegionGoSGyroDSU.tar.gz
+
+# fix a mistake I made in packaging, probably will fix it later
+sudo mv LegionGoSGyro LegionGoSGyroDSU
 sudo chmod +x LegionGoSGyroDSU || exit 1
 
-sudo cp lgsdsu.service /etc/systemd/system/
+sudo cp lgsdsu.service /etc/systemd/system/ || exit 1
 
-sudo systemctl daemon-reload
-sudo systemctl enable lgsdsu.service
+sudo systemctl daemon-reload || exit 1
+sudo systemctl enable lgsdsu.service || exit 1
 sudo systemctl start lgsdsu.service
 
-sudo chmod +x check.sh start.sh uninstall.sh
+sudo chmod +x check.sh start.sh uninstall.sh install.sh || exit 1
 
 echo Installation complete!
