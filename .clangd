@@ -1,0 +1,15 @@
+CompileFlags:
+  Compiler: clang
+
+Diagnostics:
+  ClangTidy:
+    Add:
+      - modernize-*
+      - readability-*
+      - cppcoreguidelines-*
+    Remove:
+      - cppcoreguidelines-pro-type-union-access
+      - cppcoreguidelines-non-private-member-variables-in-classes
+      - cppcoreguidelines-special-member-functions
+      - cppcoreguidelines-macro-usage
+      - cppcoreguidelines-avoid-c-arrays
