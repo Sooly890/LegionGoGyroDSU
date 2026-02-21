@@ -10,7 +10,7 @@
 
 #include "iio.hpp"
 
-#define POS_LOG 1
+#define POS_LOG 0
 #define PACKET_LOG 0
 
 auto main() -> int

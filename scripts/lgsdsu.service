@@ -1,0 +1,10 @@
+[Unit]
+Description=LegionGoSGyroDSU
+[Service]
+Type=Simple
+RestartSec=1
+User=root
+ExecStart=/bin/bash /LegionGoSGyroDSU/start.sh
+WorkingDirectory=/LegionGoSGyroDSU
+[Install]
+WantedBy=network-online.target

@@ -33,14 +33,15 @@ IIOMotion::IIOMotion()
     if (!gyro_dev)
     {
         error_bit = true;
-        std::cerr << "Could not find gyro device" << std::endl;
+        std::cerr << "Could not find gyro device. Look in README.md" << std::endl;
         return;
     }
 
     if (!accel_dev)
     {
         error_bit = true;
-        std::cerr << "Could not find accel device" << std::endl;
+        std::cerr << "Could not find accel device. Look in README.md"
+                  << std::endl;
         return;
     }
 
