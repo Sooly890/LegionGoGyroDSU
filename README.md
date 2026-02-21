@@ -6,7 +6,7 @@ IMPORTANT NOTE, READ FIRST: This project does work, however, for some reason, th
 
 # Installation
 
-Run
+Please make sure you have a password by running `passwd` (ignore this if you have a password), and then run
 
 `curl -fsSL https://raw.githubusercontent.com/Sooly890/LegionGoSGyroDSU/main/scripts/install.sh | bash`
 
