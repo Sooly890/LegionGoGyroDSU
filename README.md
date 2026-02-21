@@ -34,7 +34,7 @@ sudo systemctl restart lgsdsu.service
 I have properly fixed the IIO issue - please run the install system again.
 The check.sh is still there in the event that it happens again.
 
-Technical reason: The IIO kernel moduels were loading before the sensors existed, a race condition. I simply added a delay of 10 seconds (far too much, but does work) and it worked.
+Technical reason: The hid_sensor_hub kernel module was sometimes lazily loading, so hid-generic never left it, I don't know why. The Legion Go S's USB device actually wants hid-sensor-hub to load, however the sometimes not working bit was when it didn't request it, I don't know why this is either. The fix simply adds something that requests it to load, so therefore hid_sensor_hub does remove hid-generic.
 
 ~~turns out it was a fluke, I was just really lucky. Will do some more digging.~~
 I have actually fixed it this time.
