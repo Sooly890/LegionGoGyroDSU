@@ -9,13 +9,13 @@ sudo systemctl daemon-reload
 
 sudo rm -rf /LegionGoSGyroDSU
 
-echo Errors do matter from here, please make sure you have a root password - https://www.reddit.com/r/SteamDeck/comments/18rmwak/default_password_for_deck/
+echo Errors do matter from here, please make sure you have a password, you can run the "passwd" command if not.
 sleep 2
 
 sudo mkdir -p /LegionGoSGyroDSU
 cd /LegionGoSGyroDSU
 
-sudo wget https://github.com/Sooly890/LegionGoSGyroDSU/releases/download/latest/LegionGoSGyroDSU.tar.gz || exit 1
+sudo wget https://github.com/Sooly890/LegionGoSGyroDSU/releases/latest/download/LegionGoSGyroDSU.tar.gz || exit 1
 
 sudo tar -xzvf  LegionGoSGyroDSU.tar.gz || exit 1
 sudo rm LegionGoSGyroDSU.zip
@@ -29,5 +29,4 @@ sudo systemctl start lgsdsu.service
 
 sudo chmod +x check.sh start.sh uninstall.sh
 
-echo Installation complete!, checking status of iio.
-sudo bash check.sh
+echo Installation complete!
