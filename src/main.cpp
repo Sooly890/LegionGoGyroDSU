@@ -15,8 +15,18 @@
 
 auto main() -> int
 {
+    const char* port_str = std::getenv("LGSDSU_PORT");
+
+    unsigned int port = 26760;
+
+    if (port_str)
+    {
+        port = strtoll(port_str, nullptr, 10);
+        std::cout << "Using port " << port << " and not " << 26760 << std::endl;
+    }
+
     asio::io_context ioc;
-    auto server = dsu::DSUServer(ioc, "0.0.0.0");
+    auto server = dsu::DSUServer(ioc, "0.0.0.0", port);
 
     auto& controller0 = server.controllers.controllerData[0].actualControllerData;
     auto& controller0Shared =

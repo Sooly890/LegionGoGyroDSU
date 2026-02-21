@@ -1,6 +1,7 @@
 [Unit]
 Description=LegionGoSGyroDSU
 [Service]
+Environment="LGSDSU_PORT=26760"
 Type=Simple
 RestartSec=1
 User=root
