@@ -6,7 +6,7 @@ IMPORTANT NOTE, READ FIRST: This project does work, however, for some reason, th
 
 # Installation
 
-Run `curl https://raw.githubusercontent.com/Sooly890/LegionGoSGyroDSU/refs/heads/main/scripts/install.sh | bash`
+Run `curl -fsSL https://raw.githubusercontent.com/Sooly890/LegionGoSGyroDSU/main/scripts/install.sh | bash`
 This will install it to /LegionGoSGyroDSU
 
 # The IIO Issue
