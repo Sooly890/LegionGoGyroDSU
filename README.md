@@ -31,7 +31,7 @@ As mentioned before, the IIO devices that the project needs (gyro and accelomete
 
 if this says error, you must force shutdown the console, wait 10 mins (not exactly, just a bit of time), and then rrestart.un the check.sh again. Rinse and repeat until it works, it normally takes a few tries.
 
-an example of it succeeding: 
+an example of it succeeding (yes my Legion Go S does identify as a steamdeck):
 
 ```
 (deck@steamdeck ~)$ /LegionGoSGyroDSU/check.sh
