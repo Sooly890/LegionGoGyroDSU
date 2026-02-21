@@ -31,8 +31,6 @@ sudo systemctl restart lgsdsu.service
 
 ~~if this says error, you must force shutdown the console, wait 10 mins (not exactly, just a bit of time), and then rrestart.un the check.sh again. Rinse and repeat until it works, it normally takes a few tries.~~
 
-~~an example of it succeeding (yes my Legion Go S does identify as a steamdeck):~~
-
 I have properly fixed the IIO issue - please run the install system again.
 The check.sh is still there in the event that it happens again.
 
