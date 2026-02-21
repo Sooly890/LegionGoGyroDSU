@@ -26,17 +26,18 @@ sudo systemctl restart lgsdsu.service
 
 # The IIO Issue
 
-As mentioned before, the IIO devices that the project needs (gyro and accelometer) sometimes do not appear. You can "fix" this by installing this, and then running:
-`/LegionGoSGyroDSU/check.sh`
+~~As mentioned before, the IIO devices that the project needs (gyro and accelometer) sometimes do not appear. You can "fix" this by installing this, and then running:~~
+~~`/LegionGoSGyroDSU/check.sh`~~
 
-If this says error, you must force shutdown the console, wait 10 mins (not exactly, just a bit of time), and then rrestart.un the check.sh again. Rinse and repeat until it works, it normally takes a few tries.
+~~If this says error, you must force shutdown the console, wait 10 mins (not exactly, just a bit of time), and then rrestart.un the check.sh again. Rinse and repeat until it works, it normally takes a few tries.~~
 
-~~I have properly fixed the IIO issue - please run the install system again.~~
-~~The check.sh is still there in the event that it happens again.~~
-
-turns out it was a fluke, I was just really lucky. Will do some more digging.
+I have properly fixed the IIO issue - please run the install system again.
+The check.sh is still there in the event that it happens again.
 
 Technical reason: The IIO kernel moduels were loading before the sensors existed, a race condition. I simply added a delay of 10 seconds (far too much, but does work) and it worked.
+
+~~turns out it was a fluke, I was just really lucky. Will do some more digging.~~
+I have actually fixed it this time.
 
 # Wait, does this actually need root access?
 

@@ -7,6 +7,7 @@ sudo systemctl disable lgsdsu.service
 sudo rm /etc/systemd/system/lgsdsu.service
 sudo systemctl daemon-reload
 sudo rm /etc/modprobe.d/fix-iio.conf
+sudo rm /etc/modules-load.d/fix-iio-sensor-hub.conf
 
 sudo rm -rf /LegionGoSGyroDSU
 
@@ -33,6 +34,6 @@ sudo systemctl start lgsdsu.service
 
 sudo chmod +x check.sh start.sh uninstall.sh install.sh || exit 1
 
-sudo cp fix-iio.conf /etc/modprobe.d/ || exit 1
+sudo cp fix-iio-sensor-hub.conf /etc/modules-load.d/ || exit 1
 
 echo Installation complete, please reboot your system!
