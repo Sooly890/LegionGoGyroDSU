@@ -6,6 +6,7 @@ sudo systemctl stop lgsdsu.service
 sudo systemctl disable lgsdsu.service
 sudo rm /etc/systemd/system/lgsdsu.service
 sudo systemctl daemon-reload
+sudo rm /etc/modprobe.d/fix-iio.conf
 
 sudo rm -rf /LegionGoSGyroDSU
 
@@ -32,4 +33,6 @@ sudo systemctl start lgsdsu.service
 
 sudo chmod +x check.sh start.sh uninstall.sh install.sh || exit 1
 
-echo Installation complete!
+sudo cp fix-iio.conf /etc/modprobe.d/ || exit 1
+
+echo Installation complete, please reboot your system!

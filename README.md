@@ -26,6 +26,7 @@ sudo systemctl restart lgsdsu.service
 
 # The IIO Issue
 
+~~
 As mentioned before, the IIO devices that the project needs (gyro and accelometer) sometimes do not appear. You can "fix" this by installing this, and then running:
 `/LegionGoSGyroDSU/check.sh`
 
@@ -59,6 +60,12 @@ Feb 22 08:59:11 steamdeck bash[3529]: Sample size gyro: 12
 Feb 22 08:59:11 steamdeck bash[3529]: Sample size accel: 12
 Success!
 ```
+
+~~
+
+I have properly fixed the IIO issue - please run the install system again.
+
+Technical reason: The IIO kernel moduels were loading before the sensors existed, a race condition. I simply added a delay of 10 seconds (far too much, but does work) and it worked.
 
 # Wait, does this actually need root access?
 
