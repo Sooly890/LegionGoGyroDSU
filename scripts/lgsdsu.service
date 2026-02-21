@@ -1,11 +1,16 @@
 [Unit]
 Description=LegionGoSGyroDSU
+After=network-online.target
+Wants=network-online.target
+
 [Service]
 Environment="LGSDSU_PORT=26760"
 Type=simple
 RestartSec=1
 User=root
+Restart=on-failure
 ExecStart=/bin/bash /LegionGoSGyroDSU/start.sh
 WorkingDirectory=/LegionGoSGyroDSU
+
 [Install]
-WantedBy=network-online.target
+WantedBy=graphical.target
