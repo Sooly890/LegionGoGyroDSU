@@ -23,7 +23,7 @@ sudo tar -xzvf  LegionGoSGyroDSU.tar.gz || exit 1
 sudo rm LegionGoSGyroDSU.tar.gz
 
 # fix a mistake I made in packaging, probably will fix it later
-sudo mv LegionGoSGyro LegionGoSGyroDSU
+sudo mv LegionGoSGyro LegionGoSGyroDSU > /dev/null 2>&1
 sudo chmod +x LegionGoSGyroDSU || exit 1
 
 sudo cp lgsdsu.service /etc/systemd/system/ || exit 1
