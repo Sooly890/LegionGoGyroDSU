@@ -2,22 +2,25 @@
 
 #include <cstdint>
 #include <iostream>
+#include <memory>
 #include <random>
 
 #include <CRC.h>
 
 #include <future>
 
+#include "setting.hpp"
+
 using asio::ip::udp;
 
 namespace dsu
 {
 DSUClient::DSUClient(uint32_t client_id, uint32_t server_id,
-                     udp::socket& server_socket, udp::endpoint remote_endpoint,
-                     DSUControllers& controllers)
-    : client_id_(client_id), server_id_(server_id),
-      server_socket_(&server_socket), remote_endpoint_(remote_endpoint),
-      controllers_(&controllers)
+                     std::shared_ptr<asio::ip::udp::socket> server_socket,
+                     udp::endpoint remote_endpoint,
+                     std::shared_ptr<DSUControllers> controllers)
+    : client_id_(client_id), server_id_(server_id), server_socket_(server_socket),
+      remote_endpoint_(remote_endpoint), controllers_(controllers)
 {
 }
 
@@ -133,6 +136,11 @@ void DSUClient::SendPacket(EventType event, std::vector<uint8_t> payload)
 
 void DSUClient::Send(std::vector<uint8_t> packet)
 {
+    if (!server_socket_)
+    {
+        return;
+    }
+
     server_socket_->async_send_to(asio::buffer(packet), remote_endpoint_,
                                   [packet](std::error_code error_code,
                                            std::size_t bytes_sent) {
@@ -179,8 +187,13 @@ void DSUClient::UpdateControllers()
 
 DSUServer::DSUServer(asio::io_context& io_context, std::string ip_addr, int port,
                      std::vector<uint8_t[6]> mac_addresses)
-    : socket_(io_context, udp::endpoint(asio::ip::make_address(ip_addr), port)),
-      buffer_(), server_id_(0), controllers(), io_context_(io_context)
+    : socket_(std::make_shared<
+              asio::ip::udp::socket>(io_context,
+                                     udp::endpoint(asio::ip::make_address(
+                                                       ip_addr),
+                                                   port))),
+      buffer_(), server_id_(0), controllers(std::make_shared<DSUControllers>()),
+      io_context_(io_context)
 {
     std::cout << "Listening on " << ip_addr << ":" << port << std::endl;
 
@@ -227,7 +240,7 @@ DSUServer::DSUServer(asio::io_context& io_context, std::string ip_addr, int port
         actualControllerData.gyroscope_yaw = 0;
         actualControllerData.gyroscope_roll = 0;
 
-        controllers.controllerData.push_back(controller_data);
+        controllers->controllerData.push_back(controller_data);
     }
 
     StartReceive();
@@ -237,13 +250,18 @@ void DSUServer::Update()
 {
     for (auto& client : clients_)
     {
-        client.second.UpdateControllers();
+        client.second->UpdateControllers();
     }
 }
 
 void DSUServer::StartReceive()
 {
-    socket_.async_receive_from(
+    if (!socket_)
+    {
+        return;
+    }
+
+    socket_->async_receive_from(
         asio::buffer(buffer_), remote_endpoint_,
         [this](std::error_code error, size_t bytes_received) {
             if (!error && bytes_received > 0)
@@ -323,18 +341,30 @@ void DSUServer::StartReceive()
                 std::vector<uint8_t> payload(buffer_.begin() + sizeof(Header),
                                              buffer_.begin() + bytes_received);
 
-                auto client = clients_.find(header->server_or_client_id);
+                auto client = clients_.find(remote_endpoint_);
+
+                if (client != clients_.end() && !client->second &&
+                    client->second->client_id_ != header->server_or_client_id)
+                {
+                    clients_.erase(client);
+                }
 
                 if (client == clients_.end())
                 {
-                    auto [it, inserted] =
-                        clients_
-                            .try_emplace(header->server_or_client_id,
-                                         header->server_or_client_id, // client_id
-                                         server_id_, socket_, remote_endpoint_,
-                                         controllers);
+                    clients_[remote_endpoint_] =
+                        std::make_shared<DSUClient>(header->server_or_client_id,
+                                                    server_id_, socket_,
+                                                    remote_endpoint_,
+                                                    controllers);
+
+                    std::cout << "new client " << header->server_or_client_id
+                              << " connected from " << remote_endpoint_.address()
+                              << ":" << remote_endpoint_.port() << std::endl;
                 }
-                clients_[header->server_or_client_id].ForwardReq(header, payload);
+                clients_[remote_endpoint_]->ForwardReq(header, payload);
+                /*std::cout << header->server_or_client_id << " "
+                          << remote_endpoint_.address() << ":"
+                          << remote_endpoint_.port() << std::endl;*/
             }
 
             StartReceive();

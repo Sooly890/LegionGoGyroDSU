@@ -163,9 +163,9 @@ class DSUClient
 {
   public:
     DSUClient(uint32_t client_id, uint32_t server_id,
-              asio::ip::udp::socket& server_socket,
+              std::shared_ptr<asio::ip::udp::socket> server_socket,
               asio::ip::udp::endpoint remote_endpoint,
-              DSUControllers& controllers);
+              std::shared_ptr<DSUControllers> controllers);
 
     DSUClient() = default;
 
@@ -176,9 +176,11 @@ class DSUClient
     uint32_t packet_number_;
 
     asio::ip::udp::endpoint remote_endpoint_;
-    asio::ip::udp::socket* server_socket_;
+    std::shared_ptr<asio::ip::udp::socket> server_socket_;
 
-    DSUControllers* controllers_;
+    std::shared_ptr<DSUControllers> controllers_;
+
+    bool active;
 
     // hyper unnessesary optimisation
     uint8_t controllers_enabled = 0;
@@ -235,7 +237,7 @@ class DSUServer
         }
     }
 
-    DSUControllers controllers;
+    std::shared_ptr<DSUControllers> controllers;
 
     void Update();
 
@@ -244,15 +246,17 @@ class DSUServer
   private:
     void StartReceive();
 
-    asio::ip::udp::socket socket_;
+    // DO NOT PUT THIS BELOW SOCKET
+    std::unordered_map<asio::ip::udp::endpoint, std::shared_ptr<DSUClient>>
+        clients_;
+
+    std::shared_ptr<asio::ip::udp::socket> socket_;
     asio::ip::udp::endpoint remote_endpoint_;
     std::array<char, 4096> buffer_;
     uint32_t server_id_;
     asio::io_context& io_context_;
 
     std::thread listening_thread_;
-
-    std::unordered_map<uint32_t, DSUClient> clients_;
 };
 
 } // namespace dsu

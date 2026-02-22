@@ -7,6 +7,8 @@
 #include <iostream>
 #include <vector>
 
+#include "setting.hpp"
+
 namespace iio
 {
 IIOMotion::IIOMotion()

@@ -10,27 +10,38 @@
 
 #include "iio.hpp"
 
-#define POS_LOG 0
-#define PACKET_LOG 0
+#include "setting.hpp"
+
+#include <atomic>
+
+std::atomic<bool> running{true};
+
+void sigint_handler(int)
+{
+    running = false;
+}
 
 auto main() -> int
 {
+    std::signal(SIGINT, sigint_handler);
+
     const char* port_str = std::getenv("LGSDSU_PORT");
 
     int port = 26760;
 
     if (port_str)
     {
-        port = std::stoi(port_str, nullptr, 10);
+        port = strtoll(port_str, nullptr, 10);
         std::cout << "Using port " << port << " and not " << 26760 << std::endl;
     }
 
     asio::io_context ioc;
     auto server = dsu::DSUServer(ioc, "0.0.0.0", port);
 
-    auto& controller0 = server.controllers.controllerData[0].actualControllerData;
+    auto& controller0 =
+        server.controllers->controllerData[0].actualControllerData;
     auto& controller0Shared =
-        server.controllers.controllerData[0].actualControllerData.sharedData;
+        server.controllers->controllerData[0].actualControllerData.sharedData;
 
     controller0Shared.state = dsu::outgoing::SlotState::Connected;
     controller0Shared.model = dsu::outgoing::DeviceModel::AllGyro;
@@ -62,7 +73,7 @@ auto main() -> int
 
     iio::Vec3 debug_global_gyro;
 
-    while (true)
+    while (!iio.error_bit && running)
     {
         iio.Update();
 
