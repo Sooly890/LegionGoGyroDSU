@@ -47,36 +47,30 @@ void DSUClient::ForwardReq(Header* header, std::vector<uint8_t> payload)
         break;
     }
     case dsu::EventType::InfoController: {
-        /*auto* infoController =
-            reinterpret_cast<incoming::InfoController*>(payload.data());*/
         incoming::InfoController infoController{};
         std::memcpy(&infoController, payload.data(), sizeof(infoController));
 
-        std::vector<uint8_t> pleaseGiveInfo(std::begin(infoController.info_ports),
-                                            std::begin(
-                                                infoController.info_ports) +
-                                                infoController.num_ports);
+        // Clamp num_ports to valid range
+        const uint8_t num_ports =
+            static_cast<uint8_t>(std::clamp(infoController.num_ports, 0, 4));
 
-        for (uint8_t& controller : pleaseGiveInfo)
+        for (uint8_t i = 0; i < num_ports; i++)
         {
+            uint8_t controller = infoController.info_ports[i];
+
+            // Bounds-check the controller index
+            if (controller >= controllers_->controllerData.size())
+                continue;
+
             outgoing::InfoController info;
             info.data = controllers_->controllerData[controller]
                             .actualControllerData.sharedData;
 
-            /*std::vector<uint8_t> payload(reinterpret_cast<uint8_t*>(&info),
-                                         reinterpret_cast<uint8_t*>(&info) +
-                                             sizeof(info));*/
             std::vector<uint8_t> payload(sizeof(info));
             std::memcpy(payload.data(), &info, sizeof(info));
-
-#if PACKET_LOG
-            std::cout << "Sending InfoController packet, asking about controller "
-                      << controller << std::endl;
-#endif
-
             SendPacket(EventType::InfoController, payload);
-            break;
         }
+        break;
     }
     case EventType::ActualControllerData: {
         /*auto* actualControllerData =
@@ -146,12 +140,16 @@ void DSUClient::SendPacket(EventType event, std::vector<uint8_t> payload)
 
     header.magic = DSUS;
     header.version = 1001;
-    header.size = payload.size() + sizeof(Header);
+    // header.size = payload.size() + sizeof(Header);
+    header.size = payload.size() + sizeof(EventType);
     header.crc32 = 0;
     header.server_or_client_id = server_id_;
     header.event = event;
 
-    std::vector<uint8_t> packet(header.size);
+    // did rely on header.size but I got confused at to what it was so not relying
+    // on that anymore
+    // std::vector<uint8_t> packet(header.size);
+    std::vector<uint8_t> packet(sizeof(Header) + payload.size());
     std::memcpy(packet.data(), &header, sizeof(Header));
     std::memcpy(packet.data() + sizeof(Header), payload.data(), payload.size());
 
