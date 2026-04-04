@@ -32,7 +32,7 @@ sudo systemctl daemon-reload || exit 1
 sudo systemctl enable lgsdsu.service || exit 1
 sudo systemctl start lgsdsu.service
 
-sudo chmod +x check.sh start.sh uninstall.sh install.sh || exit 1
+sudo chmod +x check.sh uninstall.sh install.sh || exit 1
 
 sudo cp fix-iio-sensor-hub.conf /etc/modules-load.d/ || exit 1
 
