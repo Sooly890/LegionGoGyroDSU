@@ -26,8 +26,10 @@ auto main() -> int
     std::signal(SIGINT, sigint_handler);
 
     const char* port_str = std::getenv("LGSDSU_PORT");
+    const char* ip_str = std::getenv("LGSDSU_IP");
 
     int port = 26760;
+    std::string ip = "127.0.0.1";
 
     if (port_str)
     {
@@ -35,8 +37,14 @@ auto main() -> int
         std::cout << "Using port " << port << " and not " << 26760 << std::endl;
     }
 
+    if (ip_str)
+    {
+        ip = ip_str;
+        std::cout << "Using IP " << ip << " and not " << "127.0.0.1" << std::endl;
+    }
+
     asio::io_context ioc;
-    auto server = dsu::DSUServer(ioc, "0.0.0.0", port);
+    auto server = dsu::DSUServer(ioc, ip, port);
 
     auto& controller0 =
         server.controllers->controllerData[0].actualControllerData;

@@ -25,6 +25,10 @@ sudo systemctl enable lgsdsu.service
 sudo systemctl restart lgsdsu.service
 ```
 
+(note that updating does remove these changes)
+
+You may also do the same with `LGSDSU_IP`, use `0.0.0.0` (instead of `127.0.0.1`, it is by default this for security) for all ips.
+
 # Uninstallation
 
 If this didn't work, sorry! Please make an issue, I would like to make this as usable as possible.
