@@ -216,8 +216,8 @@ class DSUClient
 
     void Send(std::vector<uint8_t> packet);
     void UpdateControllers();
-    // 'D' 'S' 'U' 'S' packed into uint32_t
-    inline static const uint32_t DSUS = 0x44535553;
+    // 'D' 'S' 'U' 'S' packed into uint32_t, but flipped for little endian
+    inline static const uint32_t DSUS = 0x53555344;
 
     friend class DSUServer;
 };

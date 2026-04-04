@@ -32,23 +32,30 @@ void DSUClient::ForwardReq(Header* header, std::vector<uint8_t> payload)
         outgoing::ProtocolVersionInfo info{};
         info.maximal_version = 1001;
 
-        std::vector<uint8_t> payload(reinterpret_cast<uint8_t*>(&info),
+        /*std::vector<uint8_t> payload(reinterpret_cast<uint8_t*>(&info),
                                      reinterpret_cast<uint8_t*>(&info) +
-                                         sizeof(info));
+                                         sizeof(info));*/
+        std::vector<uint8_t> payload(sizeof(info));
+        std::memcpy(payload.data(), &info, sizeof(info));
+
+#if PACKET_LOG
+        std::cout << "Sending ProtocolVersionInfo packet" << std::endl;
+#endif
 
         SendPacket(EventType::ProtocolVersionInfo, payload);
 
         break;
     }
     case dsu::EventType::InfoController: {
-        auto* infoController =
-            reinterpret_cast<incoming::InfoController*>(payload.data());
+        /*auto* infoController =
+            reinterpret_cast<incoming::InfoController*>(payload.data());*/
+        incoming::InfoController infoController{};
+        std::memcpy(&infoController, payload.data(), sizeof(infoController));
 
-        std::vector<uint8_t> pleaseGiveInfo(std::begin(
-                                                infoController->info_ports),
+        std::vector<uint8_t> pleaseGiveInfo(std::begin(infoController.info_ports),
                                             std::begin(
-                                                infoController->info_ports) +
-                                                infoController->num_ports);
+                                                infoController.info_ports) +
+                                                infoController.num_ports);
 
         for (uint8_t& controller : pleaseGiveInfo)
         {
@@ -56,29 +63,46 @@ void DSUClient::ForwardReq(Header* header, std::vector<uint8_t> payload)
             info.data = controllers_->controllerData[controller]
                             .actualControllerData.sharedData;
 
-            std::vector<uint8_t> payload(reinterpret_cast<uint8_t*>(&info),
+            /*std::vector<uint8_t> payload(reinterpret_cast<uint8_t*>(&info),
                                          reinterpret_cast<uint8_t*>(&info) +
-                                             sizeof(info));
+                                             sizeof(info));*/
+            std::vector<uint8_t> payload(sizeof(info));
+            std::memcpy(payload.data(), &info, sizeof(info));
+
+#if PACKET_LOG
+            std::cout << "Sending InfoController packet, asking about controller "
+                      << controller << std::endl;
+#endif
 
             SendPacket(EventType::InfoController, payload);
             break;
         }
     }
     case EventType::ActualControllerData: {
-        auto* actualControllerData =
-            reinterpret_cast<incoming::ActualControllerData*>(payload.data());
+        /*auto* actualControllerData =
+            reinterpret_cast<incoming::ActualControllerData*>(payload.data());*/
+        incoming::ActualControllerData actualControllerData{};
+        std::memcpy(&actualControllerData, payload.data(),
+                    sizeof(actualControllerData));
 
-        switch (actualControllerData->match_action)
+        switch (actualControllerData.match_action)
         {
         case incoming::MatchAction::AllSlots: {
             for (uint8_t i = 0; i < 4; i++)
             {
+#if PACKET_LOG
+                std::cout << "enabling all controllers " << std::endl;
+#endif
                 SetSlot(i, true);
             }
             break;
         }
         case incoming::MatchAction::SlotBased: {
-            SetSlot(actualControllerData->slot_if_match, true);
+            SetSlot(actualControllerData.slot_if_match, true);
+#if PACKET_LOG
+            std::cout << "enabling controller "
+                      << actualControllerData.slot_if_match << std::endl;
+#endif
             break;
         }
         case dsu::incoming::MatchAction::MacBased: {
@@ -87,8 +111,14 @@ void DSUClient::ForwardReq(Header* header, std::vector<uint8_t> payload)
                 // comparing arrays, cursed edition
                 if (std::memcmp(controller.actualControllerData.sharedData
                                     .mac_address,
-                                actualControllerData->mac_if_match, 6) == 0)
+                                actualControllerData.mac_if_match, 6) == 0)
                 {
+#if PACKET_LOG
+                    std::cout << "enabling controller "
+                              << controller.actualControllerData.sharedData.slot
+                              << std::endl;
+#endif
+
                     SetSlot(controller.actualControllerData.sharedData.slot,
                             true);
                     break;
@@ -128,8 +158,11 @@ void DSUClient::SendPacket(EventType event, std::vector<uint8_t> payload)
     uint32_t new_crc32 =
         CRC::Calculate(packet.data(), packet.size(), CRC::CRC_32());
 
-    auto* vec_header = reinterpret_cast<Header*>(packet.data());
-    vec_header->crc32 = new_crc32;
+    // auto* vec_header = reinterpret_cast<Header*>(packet.data());
+    Header vec_header{};
+    std::memcpy(&vec_header, packet.data(), sizeof(Header));
+    vec_header.crc32 = new_crc32;
+    std::memcpy(packet.data(), &vec_header, sizeof(Header));
 
     Send(packet);
 }
@@ -278,24 +311,29 @@ void DSUServer::StartReceive()
                     return;
                 }
 
-                auto* header = reinterpret_cast<Header*>(buffer_.data());
+                // auto* header = reinterpret_cast<Header*>(buffer_.data());
+                Header header{};
+                std::memcpy(&header, buffer_.data(), sizeof(Header));
 
                 const size_t header_size = 16;
 
                 // remember, message type is part of payload
-                if (header->size != bytes_received - header_size)
+                if (header.size != bytes_received - header_size)
                 {
                     std::cout << "Received invalid header size" << std::endl;
                     return;
                 }
 
-                uint32_t old_crc32 = header->crc32;
-                header->crc32 = 0;
+                uint32_t old_crc32 = header.crc32;
+                auto* crc_ptr = reinterpret_cast<uint32_t*>(
+                    buffer_.data() + offsetof(Header, crc32));
+                *crc_ptr = 0;
 
                 uint32_t new_crc =
                     CRC::Calculate(buffer_.data(), bytes_received, CRC::CRC_32());
 
-                header->crc32 = old_crc32;
+                // restore
+                *crc_ptr = old_crc32;
                 if (new_crc != old_crc32)
                 {
                     std::cout << "Received invalid CRC32, expected " << old_crc32
@@ -303,7 +341,7 @@ void DSUServer::StartReceive()
                     return;
                 }
 
-                std::string magic(reinterpret_cast<char*>(&header->magic), 4);
+                std::string magic(reinterpret_cast<char*>(&header.magic), 4);
 
                 if (magic == "DSUS")
                 {
@@ -344,7 +382,7 @@ void DSUServer::StartReceive()
                 auto client = clients_.find(remote_endpoint_);
 
                 if (client != clients_.end() && !client->second &&
-                    client->second->client_id_ != header->server_or_client_id)
+                    client->second->client_id_ != header.server_or_client_id)
                 {
                     clients_.erase(client);
                 }
@@ -352,16 +390,16 @@ void DSUServer::StartReceive()
                 if (client == clients_.end())
                 {
                     clients_[remote_endpoint_] =
-                        std::make_shared<DSUClient>(header->server_or_client_id,
+                        std::make_shared<DSUClient>(header.server_or_client_id,
                                                     server_id_, socket_,
                                                     remote_endpoint_,
                                                     controllers);
 
-                    std::cout << "new client " << header->server_or_client_id
+                    std::cout << "new client " << header.server_or_client_id
                               << " connected from " << remote_endpoint_.address()
                               << ":" << remote_endpoint_.port() << std::endl;
                 }
-                clients_[remote_endpoint_]->ForwardReq(header, payload);
+                clients_[remote_endpoint_]->ForwardReq(&header, payload);
                 /*std::cout << header->server_or_client_id << " "
                           << remote_endpoint_.address() << ":"
                           << remote_endpoint_.port() << std::endl;*/
