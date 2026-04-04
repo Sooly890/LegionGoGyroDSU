@@ -25,6 +25,12 @@ sudo systemctl enable lgsdsu.service
 sudo systemctl restart lgsdsu.service
 ```
 
+# Uninstallation
+
+If this didn't work, sorry! Please make an issue, I would like to make this as usable as possible.
+
+You may uninstall by running `/LegionGoSGyroDSU/uninstall.sh`.
+
 # The IIO Issue
 
 ~~As mentioned before, the IIO devices that the project needs (gyro and accelometer) sometimes do not appear. You can "fix" this by installing this, and then running:~~
