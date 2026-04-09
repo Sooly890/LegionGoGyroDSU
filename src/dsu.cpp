@@ -208,6 +208,7 @@ void DSUClient::UpdateControllers()
             continue;
         }
 
+        controller.actualControllerData.packet_number++;
         std::vector<uint8_t> payload(sizeof(dsu::outgoing::ActualControllerData));
         std::memcpy(payload.data(), &controller.actualControllerData,
                     payload.size());
