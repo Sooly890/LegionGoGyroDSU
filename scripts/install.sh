@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# unlock the filesystem
+sudo steamos-readonly disable
+
 echo There may be errors, they do not matter, do not worry
 
 sudo systemctl stop lgsdsu.service
