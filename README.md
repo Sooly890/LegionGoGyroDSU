@@ -50,6 +50,28 @@ Technical reason: The hid_sensor_hub kernel module was sometimes lazily loading,
 ~~turns out it was a fluke, I was just really lucky. Will do some more digging.~~
 I have actually fixed it this time.
 
+# My directions don't seem right
+
+Try having a tweak of `lgsdsu.service` (`sudo nano /etc/systemd/system/lgsdsu.service`) - the defaults are:
+
+```
+Environment=LGSDSU_GYRO_MATRIX=-x,-y,z
+Environment=LGSDSU_ACCEL_MATRIX=x,z,-y
+```
+
+(e.g, accel is doing x=x, y=z, z=-y)
+
+However these may not be entirely correct for you, though they work fine for me.
+To understand what each axis is:
+
+```
+auto& controller0gyro_x = controller0.gyroscope_pitch;
+auto& controller0gyro_y = controller0.gyroscope_roll;
+auto& controller0gyro_z = controller0.gyroscope_yaw;
+```
+
+This piece of code just about sums it up - x=pitch, y=roll, z=yaw. Remember, the """console""" also uses accel to calibrate itself on the fly so that also must be correct.
+
 # Wait, does this actually need root access?
 
 Yes. This project requires root access to run and install. This is because the project needs to access the IIO devices, which are accessible to normal users, however we need to enable buffering mode on them, which requires root access, otherwise they are simply too slow.

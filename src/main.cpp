@@ -9,6 +9,7 @@
 #include <thread>
 
 #include "iio.hpp"
+#include "iio_to_dsu.hpp"
 
 #include "setting.hpp"
 
@@ -27,20 +28,49 @@ auto main() -> int
 
     const char* port_str = std::getenv("LGSDSU_PORT");
     const char* ip_str = std::getenv("LGSDSU_IP");
+    const char* gyro_matrix_cstr = std::getenv("LGSDSU_GYRO_MATRIX");
+    const char* accel_matrix_cstr = std::getenv("LGSDSU_ACCEL_MATRIX");
 
     int port = 26760;
     std::string ip = "127.0.0.1";
 
-    if (port_str)
+    std::string default_gyro_matrix_str = "-x,-y,z";
+    std::string default_accel_matrix_str = "x,z,-y";
+
+    auto default_gyro_matrix = IIOToDSU(default_gyro_matrix_str, nullptr);
+    auto default_accel_matrix = IIOToDSU(default_accel_matrix_str, nullptr);
+
+    auto gyro_matrix =
+        IIOToDSU(std::string(gyro_matrix_cstr != nullptr ? gyro_matrix_cstr : ""),
+                 &default_gyro_matrix);
+
+    auto accel_matrix =
+        IIOToDSU(std::string(accel_matrix_cstr != nullptr ? accel_matrix_cstr
+                                                          : ""),
+                 &default_accel_matrix);
+
+    if (port_str != nullptr)
     {
         port = strtoll(port_str, nullptr, 10);
         std::cout << "Using port " << port << " and not " << 26760 << std::endl;
     }
 
-    if (ip_str)
+    if (ip_str != nullptr)
     {
         ip = ip_str;
         std::cout << "Using IP " << ip << " and not " << "127.0.0.1" << std::endl;
+    }
+
+    if (gyro_matrix_cstr != nullptr)
+    {
+        std::cout << "Using gyro matrix (or default if it's invalid): "
+                  << gyro_matrix_cstr << std::endl;
+    }
+
+    if (accel_matrix_cstr != nullptr)
+    {
+        std::cout << "Using accel matrix (or default if it's invalid): "
+                  << accel_matrix_cstr << std::endl;
     }
 
     asio::io_context ioc;
@@ -91,8 +121,10 @@ auto main() -> int
         frame_start = std::chrono::high_resolution_clock::now();
 
         iio::Vec3 gyro = iio.GetGyro();
+        iio::Vec3 accel = iio.GetAccel();
 
-        double old_gyro_x = gyro.x;
+        // obsolete hardcoded matrix
+        /*double old_gyro_x = gyro.x;
         double old_gyro_y = gyro.y;
         double old_gyro_z = gyro.z;
 
@@ -100,20 +132,16 @@ auto main() -> int
         gyro.y = -old_gyro_y;
         gyro.z = old_gyro_z;
 
-        iio::Vec3 accel = iio.GetAccel();
-
-        /*accel.x = -accel.x;
-        double old_accel_y = accel.y;
-        accel.y = -accel.z;
-        accel.z = -old_accel_y;*/
-
         double old_accel_x = accel.x;
         double old_accel_y = accel.y;
         double old_accel_z = accel.z;
 
         accel.x = old_accel_x;
         accel.y = old_accel_z;
-        accel.z = -old_accel_y;
+        accel.z = -old_accel_y;*/
+
+        gyro = gyro_matrix.Convert(gyro);
+        accel = accel_matrix.Convert(accel);
 
         debug_global_gyro += gyro * deltaTime;
 
