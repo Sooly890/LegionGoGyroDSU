@@ -95,14 +95,14 @@ class IIOMotion
     }
 
   private:
-    static void ReadChannelAttr(iio_channel* chn, std::string attr, char buf[],
-                                size_t buf_len);
+    static void ReadChannelAttr(iio_channel* chn, const std::string& attr,
+                                char buf[], size_t buf_len);
 
     static void ReadChannelValue(iio_channel* chn, iio_buffer* buffer,
                                  char value[], size_t value_len);
 
-    static auto GeneralRead(iio_channel* chns[3], iio_buffer* buffer, Vec3 scale,
-                            double deadzone) -> Vec3;
+    static auto GeneralRead(iio_channel* chns[3], iio_buffer* buffer,
+                            const Vec3& scale, double deadzone) -> Vec3;
 
     iio_context* ctx;
     iio_device* gyro_dev;

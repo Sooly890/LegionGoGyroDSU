@@ -150,8 +150,8 @@ IIOMotion::~IIOMotion()
     iio_context_destroy(ctx);
 }
 
-void IIOMotion::ReadChannelAttr(iio_channel* chn, std::string attr, char buf[],
-                                size_t buf_len)
+void IIOMotion::ReadChannelAttr(iio_channel* chn, const std::string& attr,
+                                char buf[], size_t buf_len)
 {
     ssize_t attr_len = iio_channel_attr_read(chn, attr.c_str(), buf, buf_len);
     if (attr_len > 0)
@@ -182,8 +182,8 @@ auto IIOMotion::GetAccel() -> Vec3
     return GeneralRead(accel_chns, accel_buf, accel_scale_, accelDeadzone);
 }
 
-auto IIOMotion::GeneralRead(iio_channel* chns[3], iio_buffer* buffer, Vec3 scale,
-                            double deadzone) -> Vec3
+auto IIOMotion::GeneralRead(iio_channel* chns[3], iio_buffer* buffer,
+                            const Vec3& scale, double deadzone) -> Vec3
 {
     Vec3 ret{};
 
