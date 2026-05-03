@@ -1,6 +1,7 @@
 #include "iio.hpp"
 
 #include <cstdint>
+#include <future>
 #include <iio.h>
 
 #include <cstring>
@@ -167,8 +168,10 @@ void IIOMotion::ReadChannelValue(iio_channel* chn, iio_buffer* buffer,
 
 void IIOMotion::Update()
 {
-    iio_buffer_refill(gyro_buf);
+    auto gyro_fut = std::async(std::launch::async,
+                               [this] { iio_buffer_refill(gyro_buf); });
     iio_buffer_refill(accel_buf);
+    gyro_fut.get();
 }
 
 auto IIOMotion::GetGyro() -> Vec3
