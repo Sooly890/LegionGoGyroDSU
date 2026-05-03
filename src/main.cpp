@@ -185,7 +185,11 @@ auto main() -> int
                     controller0.accelerometer_z = accel.z;
                 }
             }
-            asio::post(ioc, [&server]() { server.Update(); });
+
+            if (running)
+            {
+                asio::post(ioc, [&server]() { server.Update(); });
+            }
         }
     }
 
