@@ -155,9 +155,13 @@ void IIOMotion::ReadChannelAttr(iio_channel* chn, const std::string& attr,
                                 char buf[], size_t buf_len)
 {
     ssize_t attr_len = iio_channel_attr_read(chn, attr.c_str(), buf, buf_len);
-    if (attr_len > 0)
+    if (attr_len > 0 && static_cast<size_t>(attr_len) < buf_len)
     {
         buf[attr_len] = '\0';
+    }
+    else if (attr_len >= 0 && buf_len > 0)
+    {
+        buf[buf_len - 1] = '\0';
     }
 }
 void IIOMotion::ReadChannelValue(iio_channel* chn, iio_buffer* buffer,
