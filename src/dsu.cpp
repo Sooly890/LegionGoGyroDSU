@@ -367,7 +367,7 @@ void DSUServer::StartReceive()
 
                 auto client = clients_.find(remote_endpoint_);
 
-                if (client != clients_.end() && !client->second &&
+                if (client != clients_.end() && client->second &&
                     client->second->client_id_ != header.server_or_client_id)
                 {
                     clients_.erase(client);
