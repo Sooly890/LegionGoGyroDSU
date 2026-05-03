@@ -118,7 +118,7 @@ auto main() -> int
         auto now = std::chrono::high_resolution_clock::now();
         double deltaTime =
             std::chrono::duration<double>(now - frame_start).count();
-        frame_start = std::chrono::high_resolution_clock::now();
+        frame_start = now;
 
         iio::Vec3 gyro = iio.GetGyro();
         iio::Vec3 accel = iio.GetAccel();
@@ -172,8 +172,7 @@ auto main() -> int
             accel.z != controller0.accelerometer_z)
         {
             controller0.motion_data_timestamp_microseconds =
-                std::chrono::duration_cast<std::chrono::microseconds>(
-                    std::chrono::high_resolution_clock::now() - epoch)
+                std::chrono::duration_cast<std::chrono::microseconds>(now - epoch)
                     .count();
 
             accel_changed = true;
