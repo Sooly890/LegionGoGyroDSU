@@ -194,8 +194,11 @@ void DSUClient::UpdateControllers()
 
         controller.actualControllerData.packet_number++;
         std::vector<uint8_t> payload(sizeof(dsu::outgoing::ActualControllerData));
-        std::memcpy(payload.data(), &controller.actualControllerData,
-                    payload.size());
+        {
+            std::lock_guard lock(controllers_->sensor_mutex);
+            std::memcpy(payload.data(), &controller.actualControllerData,
+                        payload.size());
+        }
 
         SendPacket(EventType::ActualControllerData, std::move(payload));
     }
