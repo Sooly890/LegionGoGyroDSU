@@ -210,7 +210,7 @@ class DSUClient
         }
     }
 
-    void ForwardReq(Header* header, std::vector<uint8_t> payload);
+    void ForwardReq(Header* header, const std::vector<uint8_t>& payload);
 
     void SendPacket(EventType event, std::vector<uint8_t> payload);
 
