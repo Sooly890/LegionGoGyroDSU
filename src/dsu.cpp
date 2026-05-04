@@ -161,17 +161,20 @@ void DSUClient::Send(std::vector<uint8_t> packet)
         return;
 
     auto buf = asio::buffer(packet);
-    server_socket_->async_send_to(
-        buf, remote_endpoint_,
-        [packet = std::move(packet)](std::error_code error_code,
-                                     std::size_t bytes_sent) {
-            if (error_code)
-                std::cerr << "Send error: " << error_code.message() << "\n";
+    server_socket_->async_send_to(buf, remote_endpoint_,
+                                  [packet = std::move(
+                                       packet)](std::error_code error_code,
+                                                std::size_t bytes_sent) {
+                                      if (error_code)
+                                          std::cerr << "Send error: "
+                                                    << error_code.message()
+                                                    << "\n";
 #if PACKET_LOG
-            else
-                std::cout << "Sent " << bytes_sent << " bytes\n";
+                                      else
+                                          std::cout << "Sent " << bytes_sent
+                                                    << " bytes\n";
 #endif
-        });
+                                  });
 }
 
 void DSUClient::UpdateControllers()
