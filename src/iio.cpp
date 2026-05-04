@@ -158,8 +158,7 @@ void IIOMotion::ReadChannelAttr(iio_channel* chn, const std::string& attr,
     if (attr_len > 0 && static_cast<size_t>(attr_len) < buf_len)
     {
         buf[attr_len] = '\0';
-    }
-    else if (attr_len >= 0 && buf_len > 0)
+    } else if (attr_len >= 0 && buf_len > 0)
     {
         buf[buf_len - 1] = '\0';
     }
@@ -172,8 +171,8 @@ void IIOMotion::ReadChannelValue(iio_channel* chn, iio_buffer* buffer,
 
 void IIOMotion::Update()
 {
-    auto gyro_fut = std::async(std::launch::async,
-                               [this] { iio_buffer_refill(gyro_buf); });
+    auto gyro_fut =
+        std::async(std::launch::async, [this] { iio_buffer_refill(gyro_buf); });
     iio_buffer_refill(accel_buf);
     gyro_fut.get();
 }
