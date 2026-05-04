@@ -109,7 +109,9 @@ auto main() -> int
 
     auto frame_start = std::chrono::high_resolution_clock::now();
 
+#if POS_LOG
     iio::Vec3 debug_global_gyro;
+#endif
 
     while (!iio.error_bit && running)
     {
@@ -118,7 +120,7 @@ auto main() -> int
         auto now = std::chrono::high_resolution_clock::now();
         double deltaTime =
             std::chrono::duration<double>(now - frame_start).count();
-        frame_start = std::chrono::high_resolution_clock::now();
+        frame_start = now;
 
         iio::Vec3 gyro = iio.GetGyro();
         iio::Vec3 accel = iio.GetAccel();
@@ -143,12 +145,9 @@ auto main() -> int
         gyro = gyro_matrix.Convert(gyro);
         accel = accel_matrix.Convert(accel);
 
+#if POS_LOG
         debug_global_gyro += gyro * deltaTime;
 
-#if POS_LOG
-
-        // if (sample_count % 100 == 0)
-        //{
         std::cout << "Gyro: " << gyro.x << ", " << gyro.y << ", " << gyro.z
                   << std::endl;
         std::cout << "Debug Global Gyro: " << debug_global_gyro.x << ", "
@@ -156,40 +155,41 @@ auto main() -> int
                   << std::endl;
         std::cout << "Accel: " << accel.x << ", " << accel.y << ", " << accel.z
                   << std::endl;
-
         std::cout << "Delta Time: " << deltaTime << std::endl;
-        //}
 #endif
 
         bool gyro_changed = gyro.x != controller0gyro_x ||
                             gyro.y != controller0gyro_y ||
                             gyro.z != controller0gyro_z;
 
-        bool accel_changed = false;
-
-        if (accel.x != controller0.accelerometer_x ||
-            accel.y != controller0.accelerometer_y ||
-            accel.z != controller0.accelerometer_z)
-        {
-            controller0.motion_data_timestamp_microseconds =
-                std::chrono::duration_cast<std::chrono::microseconds>(
-                    std::chrono::high_resolution_clock::now() - epoch)
-                    .count();
-
-            accel_changed = true;
-        }
+        bool accel_changed = accel.x != controller0.accelerometer_x ||
+                             accel.y != controller0.accelerometer_y ||
+                             accel.z != controller0.accelerometer_z;
 
         if (gyro_changed || accel_changed)
         {
-            controller0gyro_x = gyro.x;
-            controller0gyro_y = gyro.y;
-            controller0gyro_z = gyro.z;
+            {
+                std::lock_guard lock(server.controllers->sensor_mutex);
+                controller0gyro_x = gyro.x;
+                controller0gyro_y = gyro.y;
+                controller0gyro_z = gyro.z;
 
-            controller0.accelerometer_x = accel.x;
-            controller0.accelerometer_y = accel.y;
-            controller0.accelerometer_z = accel.z;
+                if (accel_changed)
+                {
+                    controller0.motion_data_timestamp_microseconds =
+                        std::chrono::duration_cast<std::chrono::microseconds>(
+                            now - epoch)
+                            .count();
+                    controller0.accelerometer_x = accel.x;
+                    controller0.accelerometer_y = accel.y;
+                    controller0.accelerometer_z = accel.z;
+                }
+            }
 
-            server.Update();
+            if (running)
+            {
+                asio::post(ioc, [&server]() { server.Update(); });
+            }
         }
     }
 

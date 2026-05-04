@@ -1,6 +1,7 @@
 #include "iio.hpp"
 
 #include <cstdint>
+#include <future>
 #include <iio.h>
 
 #include <cstring>
@@ -150,13 +151,16 @@ IIOMotion::~IIOMotion()
     iio_context_destroy(ctx);
 }
 
-void IIOMotion::ReadChannelAttr(iio_channel* chn, std::string attr, char buf[],
-                                size_t buf_len)
+void IIOMotion::ReadChannelAttr(iio_channel* chn, const std::string& attr,
+                                char buf[], size_t buf_len)
 {
     ssize_t attr_len = iio_channel_attr_read(chn, attr.c_str(), buf, buf_len);
-    if (attr_len > 0)
+    if (attr_len > 0 && static_cast<size_t>(attr_len) < buf_len)
     {
         buf[attr_len] = '\0';
+    } else if (attr_len >= 0 && buf_len > 0)
+    {
+        buf[buf_len - 1] = '\0';
     }
 }
 void IIOMotion::ReadChannelValue(iio_channel* chn, iio_buffer* buffer,
@@ -167,8 +171,10 @@ void IIOMotion::ReadChannelValue(iio_channel* chn, iio_buffer* buffer,
 
 void IIOMotion::Update()
 {
-    iio_buffer_refill(gyro_buf);
+    auto gyro_fut =
+        std::async(std::launch::async, [this] { iio_buffer_refill(gyro_buf); });
     iio_buffer_refill(accel_buf);
+    gyro_fut.get();
 }
 
 auto IIOMotion::GetGyro() -> Vec3
@@ -182,8 +188,8 @@ auto IIOMotion::GetAccel() -> Vec3
     return GeneralRead(accel_chns, accel_buf, accel_scale_, accelDeadzone);
 }
 
-auto IIOMotion::GeneralRead(iio_channel* chns[3], iio_buffer* buffer, Vec3 scale,
-                            double deadzone) -> Vec3
+auto IIOMotion::GeneralRead(iio_channel* chns[3], iio_buffer* buffer,
+                            const Vec3& scale, double deadzone) -> Vec3
 {
     Vec3 ret{};
 

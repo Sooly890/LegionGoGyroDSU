@@ -24,7 +24,7 @@ DSUClient::DSUClient(uint32_t client_id, uint32_t server_id,
 {
 }
 
-void DSUClient::ForwardReq(Header* header, std::vector<uint8_t> payload)
+void DSUClient::ForwardReq(Header* header, const std::vector<uint8_t>& payload)
 {
     switch (header->event)
     {
@@ -32,17 +32,14 @@ void DSUClient::ForwardReq(Header* header, std::vector<uint8_t> payload)
         outgoing::ProtocolVersionInfo info{};
         info.maximal_version = 1001;
 
-        /*std::vector<uint8_t> payload(reinterpret_cast<uint8_t*>(&info),
-                                     reinterpret_cast<uint8_t*>(&info) +
-                                         sizeof(info));*/
-        std::vector<uint8_t> payload(sizeof(info));
-        std::memcpy(payload.data(), &info, sizeof(info));
+        std::vector<uint8_t> pkt(sizeof(info));
+        std::memcpy(pkt.data(), &info, sizeof(info));
 
 #if PACKET_LOG
         std::cout << "Sending ProtocolVersionInfo packet" << std::endl;
 #endif
 
-        SendPacket(EventType::ProtocolVersionInfo, payload);
+        SendPacket(EventType::ProtocolVersionInfo, std::move(pkt));
 
         break;
     }
@@ -66,9 +63,9 @@ void DSUClient::ForwardReq(Header* header, std::vector<uint8_t> payload)
             info.data = controllers_->controllerData[controller]
                             .actualControllerData.sharedData;
 
-            std::vector<uint8_t> payload(sizeof(info));
-            std::memcpy(payload.data(), &info, sizeof(info));
-            SendPacket(EventType::InfoController, payload);
+            std::vector<uint8_t> pkt(sizeof(info));
+            std::memcpy(pkt.data(), &info, sizeof(info));
+            SendPacket(EventType::InfoController, std::move(pkt));
         }
         break;
     }
@@ -136,19 +133,14 @@ void DSUClient::ForwardReq(Header* header, std::vector<uint8_t> payload)
 
 void DSUClient::SendPacket(EventType event, std::vector<uint8_t> payload)
 {
-    auto header = Header();
-
+    Header header{};
     header.magic = DSUS;
     header.version = 1001;
-    // header.size = payload.size() + sizeof(Header);
     header.size = payload.size() + sizeof(EventType);
     header.crc32 = 0;
     header.server_or_client_id = server_id_;
     header.event = event;
 
-    // did rely on header.size but I got confused at to what it was so not relying
-    // on that anymore
-    // std::vector<uint8_t> packet(header.size);
     std::vector<uint8_t> packet(sizeof(Header) + payload.size());
     std::memcpy(packet.data(), &header, sizeof(Header));
     std::memcpy(packet.data() + sizeof(Header), payload.data(), payload.size());
@@ -156,37 +148,32 @@ void DSUClient::SendPacket(EventType event, std::vector<uint8_t> payload)
     uint32_t new_crc32 =
         CRC::Calculate(packet.data(), packet.size(), CRC::CRC_32());
 
-    // auto* vec_header = reinterpret_cast<Header*>(packet.data());
-    Header vec_header{};
-    std::memcpy(&vec_header, packet.data(), sizeof(Header));
-    vec_header.crc32 = new_crc32;
-    std::memcpy(packet.data(), &vec_header, sizeof(Header));
+    auto* crc_field =
+        reinterpret_cast<uint32_t*>(packet.data() + offsetof(Header, crc32));
+    *crc_field = new_crc32;
 
-    Send(packet);
+    Send(std::move(packet));
 }
 
 void DSUClient::Send(std::vector<uint8_t> packet)
 {
     if (!server_socket_)
-    {
         return;
-    }
 
-    server_socket_->async_send_to(asio::buffer(packet), remote_endpoint_,
-                                  [packet](std::error_code error_code,
-                                           std::size_t bytes_sent) {
+    auto buf = asio::buffer(packet);
+    server_socket_->async_send_to(buf, remote_endpoint_,
+                                  [packet = std::move(
+                                       packet)](std::error_code error_code,
+                                                std::size_t bytes_sent) {
                                       if (error_code)
-                                      {
                                           std::cerr << "Send error: "
                                                     << error_code.message()
                                                     << "\n";
-                                      } else
-                                      {
 #if PACKET_LOG
+                                      else
                                           std::cout << "Sent " << bytes_sent
                                                     << " bytes\n";
 #endif
-                                      }
                                   });
 }
 
@@ -210,10 +197,13 @@ void DSUClient::UpdateControllers()
 
         controller.actualControllerData.packet_number++;
         std::vector<uint8_t> payload(sizeof(dsu::outgoing::ActualControllerData));
-        std::memcpy(payload.data(), &controller.actualControllerData,
-                    payload.size());
+        {
+            std::lock_guard lock(controllers_->sensor_mutex);
+            std::memcpy(payload.data(), &controller.actualControllerData,
+                        payload.size());
+        }
 
-        SendPacket(EventType::ActualControllerData, payload);
+        SendPacket(EventType::ActualControllerData, std::move(payload));
     }
 }
 
@@ -380,7 +370,7 @@ void DSUServer::StartReceive()
 
                 auto client = clients_.find(remote_endpoint_);
 
-                if (client != clients_.end() && !client->second &&
+                if (client != clients_.end() && client->second &&
                     client->second->client_id_ != header.server_or_client_id)
                 {
                     clients_.erase(client);

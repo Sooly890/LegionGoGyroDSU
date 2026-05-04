@@ -3,6 +3,7 @@
 #include <asio.hpp>
 #include <asio/ip/udp.hpp>
 #include <cstdint>
+#include <mutex>
 #include <unordered_map>
 
 namespace dsu
@@ -156,6 +157,7 @@ struct DSUControllers
         dsu::outgoing::ActualControllerData actualControllerData;
     };
 
+    std::mutex sensor_mutex;
     std::vector<ControllerData> controllerData;
 };
 
@@ -210,7 +212,7 @@ class DSUClient
         }
     }
 
-    void ForwardReq(Header* header, std::vector<uint8_t> payload);
+    void ForwardReq(Header* header, const std::vector<uint8_t>& payload);
 
     void SendPacket(EventType event, std::vector<uint8_t> payload);
 

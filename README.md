@@ -1,90 +1,94 @@
 # LegionGoSGyroDSU
 
-A project to get a Motion (Gyro and Accel) DSU to work on the Legion Go S SteamOS edition.
+A project to enable Motion (Gyro and Accelerometer) DSU for the Legion Go S SteamOS edition.
 
-~~IMPORTANT NOTE, READ FIRST: This project does work, however, for some reason, the IIO (Industrial I/O) devices this project relies on does not seem to always exist. Please look below for the "solution".~~
-solved
+## Installation
 
-# Installation
+To install LegionGoSGyroDSU, ensure you have a user password set (run `passwd` if not), then execute the following command:
 
-Please make sure you have a password by running `passwd` (ignore this if you have a password), and then run
-
-`curl -fsSL https://raw.githubusercontent.com/Sooly890/LegionGoSGyroDSU/main/scripts/install.sh | bash`
-
-This will install it to `/LegionGoSGyroDSU`
-
-If you desire, you can change the port by running:
-`sudo nano /etc/systemd/system/lgsdsu.service`
-
-then editing the `LGSDSU_PORT=26760` to whatever you want
-press CTRL+S to save, CTRL+X to exit. Then run:
-
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sooly890/LegionGoSGyroDSU/main/scripts/install.sh | bash
 ```
+
+**Note:** The project will be installed to `/LegionGoSGyroDSU`. After installation, please reboot your system to ensure the IIO sensors are correctly initialized.
+
+## Configuration
+
+You can customize the port, IP, and sensor orientation by editing the service file:
+
+```bash
+sudo nano /etc/systemd/system/lgsdsu.service
+```
+
+### Available Options
+
+| Environment Variable  | Default Value | Description                                           |
+| --------------------- | ------------- | ----------------------------------------------------- |
+| `LGSDSU_PORT`         | `26760`       | The port used by the DSU server.                      |
+| `LGSDSU_IP`           | `127.0.0.1`   | Bind IP. Use `0.0.0.0` to allow external connections. |
+| `LGSDSU_GYRO_MATRIX`  | `-x,-y,z`     | Orientation matrix for the gyroscope.                 |
+| `LGSDSU_ACCEL_MATRIX` | `x,z,-y`      | Orientation matrix for the accelerometer.             |
+
+After making changes, apply them by running:
+
+```bash
 sudo systemctl daemon-reload
-sudo systemctl enable lgsdsu.service
 sudo systemctl restart lgsdsu.service
 ```
 
-(note that updating does remove these changes)
+_Note: Updating the software will overwrite these changes._
 
-You may also do the same with `LGSDSU_IP`, use `0.0.0.0` (instead of `127.0.0.1`, it is by default this for security) for all ips.
+### Sensor Orientation
 
-# Uninstallation
+If the directions feel wrong, adjust the matrix values in the service file. The mapping follows:
 
-If this didn't work, sorry! Please make an issue, I would like to make this as usable as possible.
+- `x`: Pitch
+- `y`: Roll
+- `z`: Yaw
 
-You may uninstall by running `/LegionGoSGyroDSU/uninstall.sh`.
+The """console""" also uses the accelerometer to calibrate the gyroscope on the fly (it's affected by gravity), so even if you're sure the gyroscope settings are correct the accelerometer settings might not be.
 
-# The IIO Issue
+## Troubleshooting
 
-~~As mentioned before, the IIO devices that the project needs (gyro and accelometer) sometimes do not appear. You can "fix" this by installing this, and then running:~~
-~~`/LegionGoSGyroDSU/check.sh`~~
+### The IIO Issue
 
-~~If this says error, you must force shutdown the console, wait 10 mins (not exactly, just a bit of time), and then rrestart.un the check.sh again. Rinse and repeat until it works, it normally takes a few tries.~~
+Previously, IIO devices (gyro/accel) sometimes failed to appear. This has been fixed by forcing the `hid_sensor_hub` module to load. If you still encounter issues, you can run:
 
-I have properly fixed the IIO issue - please run the install system again.
-The check.sh is still there in the event that it happens again.
-
-Technical reason: The hid_sensor_hub kernel module was sometimes lazily loading, so hid-generic never left it, I don't know why. The Legion Go S's USB device actually wants hid-sensor-hub to load, however the sometimes not working bit was when it didn't request it, I don't know why this is either. The fix simply adds something that requests it to load, so therefore hid_sensor_hub does remove hid-generic.
-
-~~turns out it was a fluke, I was just really lucky. Will do some more digging.~~
-I have actually fixed it this time.
-
-# My directions don't seem right
-
-Try having a tweak of `lgsdsu.service` (`sudo nano /etc/systemd/system/lgsdsu.service`) - the defaults are:
-
-```
-Environment=LGSDSU_GYRO_MATRIX=-x,-y,z
-Environment=LGSDSU_ACCEL_MATRIX=x,z,-y
+```bash
+/LegionGoSGyroDSU/check.sh
 ```
 
-(e.g, accel is doing x=x, y=z, z=-y)
+**Technical reason:** The hid_sensor_hub kernel module was sometimes lazily loading, so hid-generic never left it, I don't know why. The Legion Go S's USB device actually wants hid-sensor-hub to load, however the sometimes not working bit was when it didn't request it, I don't know why this is either. The fix simply adds something that requests it to load, so therefore hid_sensor_hub does remove hid-generic.
 
-However these may not be entirely correct for you, though they work fine for me.
-To understand what each axis is:
+### Root Access
 
+This project requires root access to enable buffering mode on IIO devices, which is necessary for high-speed sensor data access.
+
+## Uninstallation
+
+If you wish to remove the project, run:
+
+```bash
+sudo /LegionGoSGyroDSU/uninstall.sh
 ```
-auto& controller0gyro_x = controller0.gyroscope_pitch;
-auto& controller0gyro_y = controller0.gyroscope_roll;
-auto& controller0gyro_z = controller0.gyroscope_yaw;
-```
 
-This piece of code just about sums it up - x=pitch, y=roll, z=yaw. Remember, the """console""" also uses accel to calibrate itself on the fly so that also must be correct.
+## Development & Building
 
-# Wait, does this actually need root access?
+Building on the Legion Go S itself is not recommended. Use another Arch Linux machine:
 
-Yes. This project requires root access to run and install. This is because the project needs to access the IIO devices, which are accessible to normal users, however we need to enable buffering mode on them, which requires root access, otherwise they are simply too slow.
-
-# I want to build this myself, how?
-
-It is fairly straightforward to build, however do not build it on your Legion as that would require setting it up for development, which is not worth it. Instead, with another arch linux machine, run:
-
-```
+```bash
+# Clone the repository
 git clone https://github.com/Sooly890/LegionGoSGyroDSU
 cd LegionGoSGyroDSU
+
+# Install dependencies
 sudo pacman -S asio libiio
+
+# Build and package
 scripts/build.sh
+scripts/package.sh
 ```
 
-and then run `scripts/package.sh` if you want to package it like in the releases.
+---
+
+_If you encounter any issues, please open an issue on GitHub!_

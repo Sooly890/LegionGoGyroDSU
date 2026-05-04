@@ -8,6 +8,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
 set(SOURCES
     src/main.cpp
     src/dsu.cpp
@@ -28,5 +32,10 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBIIO REQUIRED libiio)
 
 include_directories(${LIBIIO_INCLUDE_DIRS})
+
+target_compile_options(LegionGoSGyro PRIVATE
+    $<$<CONFIG:Release>:-O2>
+    $<$<CONFIG:Debug>:-O0 -g>
+)
 
 target_link_libraries(LegionGoSGyro PRIVATE Threads::Threads ${LIBIIO_LIBRARIES})

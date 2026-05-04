@@ -130,7 +130,7 @@ class IIOToDSU
         }
     }
 
-    auto Convert(iio::Vec3& input) -> iio::Vec3
+    auto Convert(const iio::Vec3& input) -> iio::Vec3
     {
         iio::Vec3 output(0, 0, 0);
 
