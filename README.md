@@ -58,7 +58,7 @@ Previously, IIO devices (gyro/accel) sometimes failed to appear. This has been f
 /LegionGoSGyroDSU/check.sh
 ```
 
-**Technical reason:** The hid_sensor_hub kernel module was sometimes lazily loading, so hid-generic never left it, I don't know why. The Legion Go S's USB device actually wants hid-sensor-hub to load, however the sometimes not working bit was when it didn't request it, I don't know why this is either. The fix simply adds something that requests it to load, so therefore hid_sensor_hub does remove hid-generic.
+**Technical reason:** The `hid_sensor_hub` kernel module was sometimes lazily loading, so `hid-generic` never left it, I don't know why. The Legion Go S's USB device actually wants `hid-sensor-hub` to load, however the sometimes not working bit was when it didn't request it, I don't know why this is either. The fix simply adds something that requests it to load earlier, so therefore `hid_sensor_hub` does remove `hid-generic`.
 
 ### Root Access
 
