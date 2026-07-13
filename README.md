@@ -64,6 +64,24 @@ Previously, IIO devices (gyro/accel) sometimes failed to appear. This has been f
 
 This project requires root access to enable buffering mode on IIO devices, which is necessary for high-speed sensor data access.
 
+### Additional Troubleshooting
+
+If you cannot figure out the error, try and run the app directly from the terminal.
+```bash
+# Stop the process in the background 
+sudo systemctl stop lgsdsu
+
+# Run it in terminal
+sudo /LegionGoSGyroDSU/LegionGoSGyroDSU
+
+# Optionally, start LegionGoSGyroDSU again
+sudo systemctl start lgsdsu
+```
+
+### Bind port already in use/segfault 
+
+Make sure nothing is using the default port (26760), most commonly SteamDeckDSU (uninstalling is the best way), or change the port LegionGoSGyroDSU uses.
+
 ## Uninstallation
 
 If you wish to remove the project, run:
