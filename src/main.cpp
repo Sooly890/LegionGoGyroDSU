@@ -2,6 +2,7 @@
 
 #include <asio/io_context.hpp>
 
+#include <algorithm>
 #include <iostream>
 
 #include <chrono>
@@ -24,6 +25,9 @@
 
 namespace
 {
+constexpr auto HidRecoveryInitialDelay = std::chrono::seconds(1);
+constexpr auto HidRecoveryMaximumDelay = std::chrono::seconds(5);
+
 auto requested_motion_source(int argc, char* argv[]) -> std::string
 {
     constexpr std::string_view prefix = "--motion-source=";
@@ -186,6 +190,8 @@ auto main(int argc, char* argv[]) -> int
 #endif
 
     bool motion_source_failed = false;
+    bool recovering_legion_hid = false;
+    auto hid_recovery_delay = HidRecoveryInitialDelay;
     while (running)
     {
         motion::MotionSample sample;
@@ -193,9 +199,31 @@ auto main(int argc, char* argv[]) -> int
         {
             if (!running)
                 break;
+            if (is_legion_hid)
+            {
+                // Suspend can remove hidraw devices for several seconds. Keep
+                // the DSU socket and its client registrations alive while the
+                // HID backend waits for the controller to reappear.
+                std::cerr << "Legion HID motion source is unavailable; "
+                             "retrying in "
+                          << hid_recovery_delay.count() << " seconds\n";
+                recovering_legion_hid = true;
+                std::this_thread::sleep_for(hid_recovery_delay);
+                hid_recovery_delay =
+                    std::min(hid_recovery_delay * 2,
+                             HidRecoveryMaximumDelay);
+                continue;
+            }
             std::cerr << "Motion source stopped producing samples\n";
             motion_source_failed = true;
             break;
+        }
+
+        if (recovering_legion_hid)
+        {
+            std::cout << "Legion HID motion source recovered\n";
+            recovering_legion_hid = false;
+            hid_recovery_delay = HidRecoveryInitialDelay;
         }
 
         auto now = std::chrono::high_resolution_clock::now();

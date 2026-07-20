@@ -171,6 +171,9 @@ bool LegionHIDMotionSource::switch_selected_side(
 
 bool LegionHIDMotionSource::poll(MotionSample& sample)
 {
+    if (fd_ < 0 && !reconnect())
+        return false;
+
     while (fd_ >= 0)
     {
         pollfd descriptor{fd_, POLLIN, 0};
