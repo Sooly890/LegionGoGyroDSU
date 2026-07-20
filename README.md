@@ -201,12 +201,17 @@ ctest --test-dir build --output-on-failure
 ### Legion HID Protocol Status
 
 The report ID, IMU byte layout, signed big-endian decoding, scaling factors,
-and supported identifiers are kept in `src/legion_hid_protocol.cpp`. Two
-protocol details still require confirmation across real controller firmware
-versions and are deliberately isolated there:
+side-specific axis signs, and supported identifiers are kept in
+`src/legion_hid_protocol.cpp`. The axis signs normalize the different physical
+orientations of the left and right controllers before the existing
+user-configurable DSU matrices are applied.
+
+The following protocol details still require confirmation across real
+controller firmware versions and are deliberately isolated there:
 
 - the high-quality report activation command;
-- the assumption that one 8-bit timestamp step represents 8 milliseconds.
+- the assumption that one 8-bit timestamp step represents 8 milliseconds;
+- the side-specific axis signs on Legion Go 2 production hardware.
 
 Please include the controller product ID, firmware version, selected hidraw
 path, and observed report rate when reporting Legion Go 2 HID problems.

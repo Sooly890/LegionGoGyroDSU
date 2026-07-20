@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cerrno>
+#include <chrono>
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
@@ -12,6 +13,7 @@
 #include <linux/hidraw.h>
 #include <poll.h>
 #include <sys/ioctl.h>
+#include <thread>
 #include <unistd.h>
 #include <vector>
 
@@ -21,6 +23,9 @@ namespace
 {
 constexpr std::uint16_t LenovoVendorId = 0x17EF;
 constexpr int ReadTimeoutMilliseconds = 1000;
+constexpr int ReconnectAttempts = 3;
+constexpr auto ReconnectDelay = std::chrono::milliseconds(500);
+constexpr std::uint32_t MissingControllerReportLimit = 125;
 
 bool is_legion_vendor_interface(int fd)
 {
@@ -62,12 +67,28 @@ auto hidraw_paths() -> std::vector<std::filesystem::path>
 
 LegionHIDMotionSource::~LegionHIDMotionSource()
 {
+    close_device();
+}
+
+void LegionHIDMotionSource::close_device()
+{
     if (fd_ >= 0)
+    {
+        for (const auto& command :
+             legion_protocol::shutdown_commands(selected_side_))
+            static_cast<void>(write(fd_, command.data(), command.size()));
         close(fd_);
+    }
+    fd_ = -1;
+    have_timestamp_ = false;
+    have_valid_gyro_ = false;
+    missing_controller_reports_ = 0;
 }
 
 bool LegionHIDMotionSource::initialize()
 {
+    close_device();
+
     for (const auto& path : hidraw_paths())
     {
         const int candidate = open(path.c_str(), O_RDWR | O_CLOEXEC);
@@ -96,9 +117,25 @@ bool LegionHIDMotionSource::initialize()
     return false;
 }
 
+bool LegionHIDMotionSource::reconnect()
+{
+    close_device();
+    for (int attempt = 1; attempt <= ReconnectAttempts; ++attempt)
+    {
+        std::cerr << "Reconnecting Legion HID motion source (attempt "
+                  << attempt << '/' << ReconnectAttempts << ")\n";
+        if (initialize())
+            return true;
+        if (attempt != ReconnectAttempts)
+            std::this_thread::sleep_for(ReconnectDelay);
+    }
+    return false;
+}
+
 bool LegionHIDMotionSource::send_initialization_packets()
 {
-    for (const auto& command : legion_protocol::initialization_commands())
+    for (const auto& command :
+         legion_protocol::initialization_commands(selected_side_))
     {
         const auto written = write(fd_, command.data(), command.size());
         if (written != static_cast<ssize_t>(command.size()))
@@ -111,6 +148,27 @@ bool LegionHIDMotionSource::send_initialization_packets()
     return true;
 }
 
+bool LegionHIDMotionSource::switch_selected_side(
+    legion_protocol::ControllerSide side)
+{
+    for (const auto& command :
+         legion_protocol::shutdown_commands(selected_side_))
+        static_cast<void>(write(fd_, command.data(), command.size()));
+
+    selected_side_ = side;
+    have_timestamp_ = false;
+    have_valid_gyro_ = false;
+    if (!send_initialization_packets())
+        return false;
+
+    std::cout << "Using "
+              << (selected_side_ == legion_protocol::ControllerSide::Right
+                      ? "right"
+                      : "left")
+              << " Legion controller IMU\n";
+    return true;
+}
+
 bool LegionHIDMotionSource::poll(MotionSample& sample)
 {
     while (fd_ >= 0)
@@ -118,13 +176,15 @@ bool LegionHIDMotionSource::poll(MotionSample& sample)
         pollfd descriptor{fd_, POLLIN, 0};
         const int ready = ::poll(&descriptor, 1, ReadTimeoutMilliseconds);
         if (ready < 0 && errno == EINTR)
-            continue;
+            return false;
         if (ready <= 0 || (descriptor.revents & (POLLERR | POLLHUP | POLLNVAL)))
         {
             if (ready == 0)
                 std::cerr << "Timed out waiting for Legion HID motion report\n";
             else
                 std::cerr << "Legion HID device became unavailable\n";
+            if (reconnect())
+                continue;
             return false;
         }
 
@@ -135,22 +195,82 @@ bool LegionHIDMotionSource::poll(MotionSample& sample)
         if (length != static_cast<ssize_t>(report.size()))
         {
             std::cerr << "Invalid Legion HID report length: " << length << '\n';
+            if (reconnect())
+                continue;
             return false;
         }
 
+        const auto connected_side =
+            legion_protocol::connected_controller_side(report);
+        if (!connected_side)
+        {
+            ++missing_controller_reports_;
+            if (missing_controller_reports_ < MissingControllerReportLimit)
+                continue;
+            std::cerr << "No connected Legion controller reported by HID\n";
+            if (reconnect())
+                continue;
+            return false;
+        }
+        missing_controller_reports_ = 0;
+
+        if (*connected_side != selected_side_)
+        {
+            if (!switch_selected_side(*connected_side) && !reconnect())
+                return false;
+            continue;
+        }
+
         std::uint8_t timestamp = 0;
-        // A DSU slot carries one IMU. The right controller is the default
-        // physical source; this policy is intentionally separate from decoding.
-        if (!legion_protocol::decode_report(
-                report, legion_protocol::ControllerSide::Right, sample,
-                timestamp))
+        // A DSU slot carries one IMU. Only the selected controller is enabled.
+        if (!legion_protocol::decode_report(report, selected_side_, sample,
+                                            timestamp))
             continue;
 
-        sample.dt_seconds = have_timestamp_
-                                ? legion_protocol::timestamp_delta_seconds(
-                                      previous_timestamp_, timestamp)
-                                : 0.0;
+        if (legion_protocol::has_known_gyro_glitch(report, selected_side_))
+        {
+            ++gyro_glitch_count_;
+            if (gyro_glitch_count_ == 1 || gyro_glitch_count_ % 100 == 0)
+                std::cerr << "Discarded known Legion controller gyro glitch ("
+                          << gyro_glitch_count_ << " total)\n";
+            if (!have_valid_gyro_)
+                continue;
+            sample.gyro = last_valid_gyro_;
+        } else
+        {
+            last_valid_gyro_ = sample.gyro;
+            have_valid_gyro_ = true;
+        }
+
+        const auto host_now = std::chrono::steady_clock::now();
+        if (have_timestamp_)
+        {
+            const auto device_delta =
+                legion_protocol::timestamp_delta_seconds(previous_timestamp_,
+                                                          timestamp);
+            const auto host_delta =
+                std::chrono::duration<double>(host_now - previous_host_time_)
+                    .count();
+            if (legion_protocol::is_plausible_timestamp_delta(device_delta,
+                                                              host_delta))
+            {
+                sample.dt_seconds = device_delta;
+            } else
+            {
+                sample.dt_seconds = host_delta;
+                ++timestamp_fallback_count_;
+                if (timestamp_fallback_count_ == 1 ||
+                    timestamp_fallback_count_ % 100 == 0)
+                    std::cerr << "Using host timing for implausible Legion HID "
+                                 "timestamp ("
+                              << timestamp_fallback_count_ << " total)\n";
+            }
+        } else
+        {
+            sample.dt_seconds = 0.0;
+        }
         previous_timestamp_ = timestamp;
+        previous_host_time_ = host_now;
         have_timestamp_ = true;
         return true;
     }
