@@ -9,11 +9,58 @@
 #include <thread>
 
 #include "iio.hpp"
+#include "iio_motion_source.hpp"
 #include "iio_to_dsu.hpp"
+#include "legion_hid_motion_source.hpp"
+#include "motion_source.hpp"
 
 #include "setting.hpp"
 
 #include <atomic>
+#include <memory>
+#include <stdexcept>
+#include <string_view>
+
+namespace
+{
+auto requested_motion_source(int argc, char* argv[]) -> std::string
+{
+    constexpr std::string_view prefix = "--motion-source=";
+    std::string source = "auto";
+    for (int index = 1; index < argc; ++index)
+    {
+        const std::string_view argument(argv[index]);
+        if (argument.rfind(prefix, 0) == 0)
+            source = argument.substr(prefix.size());
+        else
+            throw std::invalid_argument("Unknown argument: " +
+                                        std::string(argument));
+    }
+    if (source != "auto" && source != "iio" && source != "legion-hid")
+        throw std::invalid_argument("Unknown motion source: " + source);
+    return source;
+}
+
+auto make_motion_source(const std::string& requested)
+    -> std::unique_ptr<motion::MotionSource>
+{
+    if (requested == "auto" || requested == "legion-hid")
+    {
+        auto hid = std::make_unique<motion::LegionHIDMotionSource>();
+        if (hid->initialize())
+            return hid;
+        std::cerr << (requested == "auto"
+                          ? "No compatible Legion HID motion source found; "
+                            "using IIO\n"
+                          : "Falling back to the IIO motion source\n");
+    }
+
+    auto iio = std::make_unique<motion::IIOMotionSource>();
+    if (iio->initialize())
+        return iio;
+    return nullptr;
+}
+} // namespace
 
 std::atomic<bool> running{true};
 
@@ -22,9 +69,21 @@ void sigint_handler(int)
     running = false;
 }
 
-auto main() -> int
+auto main(int argc, char* argv[]) -> int
 {
     std::signal(SIGINT, sigint_handler);
+
+    std::string motion_source_name;
+    try
+    {
+        motion_source_name = requested_motion_source(argc, argv);
+    } catch (const std::exception& error)
+    {
+        std::cerr << error.what() << '\n'
+                  << "Usage: LegionGoSGyro "
+                     "[--motion-source=auto|iio|legion-hid]\n";
+        return 2;
+    }
 
     const char* port_str = std::getenv("LGSDSU_PORT");
     const char* ip_str = std::getenv("LGSDSU_IP");
@@ -98,12 +157,12 @@ auto main() -> int
 
     server.StartListeningThread();
 
-    auto iio = iio::IIOMotion();
-
-    const double sec2microseconds = 1000000;
-
-    double freq_seconds = 1.0 / iio.GetMinFreq();
-    double freq_microseconds = freq_seconds * sec2microseconds;
+    auto motion_source = make_motion_source(motion_source_name);
+    if (!motion_source)
+    {
+        std::cerr << "Unable to initialize a motion source\n";
+        return 1;
+    }
 
     auto epoch = std::chrono::high_resolution_clock::now();
 
@@ -113,17 +172,24 @@ auto main() -> int
     iio::Vec3 debug_global_gyro;
 #endif
 
-    while (!iio.error_bit && running)
+    while (running)
     {
-        iio.Update();
+        motion::MotionSample sample;
+        if (!motion_source->poll(sample))
+        {
+            std::cerr << "Motion source stopped producing samples\n";
+            break;
+        }
 
         auto now = std::chrono::high_resolution_clock::now();
-        double deltaTime =
-            std::chrono::duration<double>(now - frame_start).count();
+        double deltaTime = sample.dt_seconds > 0.0
+                               ? sample.dt_seconds
+                               : std::chrono::duration<double>(now - frame_start)
+                                     .count();
         frame_start = now;
 
-        iio::Vec3 gyro = iio.GetGyro();
-        iio::Vec3 accel = iio.GetAccel();
+        iio::Vec3 gyro(sample.gyro.x, sample.gyro.y, sample.gyro.z);
+        iio::Vec3 accel(sample.accel.x, sample.accel.y, sample.accel.z);
 
         // obsolete hardcoded matrix
         /*double old_gyro_x = gyro.x;
