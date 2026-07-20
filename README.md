@@ -42,12 +42,20 @@ sudo nano /etc/systemd/system/lgsdsu.service
 
 ### Available Options
 
-| Environment Variable  | Default Value | Description                                           |
-| --------------------- | ------------- | ----------------------------------------------------- |
-| `LGSDSU_PORT`         | `26760`       | The port used by the DSU server.                      |
-| `LGSDSU_IP`           | `127.0.0.1`   | Bind IP. Use `0.0.0.0` to allow external connections. |
-| `LGSDSU_GYRO_MATRIX`  | `-x,-y,z`     | Orientation matrix for the gyroscope.                 |
-| `LGSDSU_ACCEL_MATRIX` | `x,z,-y`      | Orientation matrix for the accelerometer.             |
+| Environment Variable  | Default Value                            | Description                                           |
+| --------------------- | ----------------------------------------- | ----------------------------------------------------- |
+| `LGSDSU_PORT`         | `26760`                                   | The port used by the DSU server.                      |
+| `LGSDSU_IP`           | `127.0.0.1`                               | Bind IP. Use `0.0.0.0` to allow external connections. |
+| `LGSDSU_GYRO_MATRIX`  | `-x,-y,z` (IIO) / `x,z,y` (Legion HID)    | Orientation matrix for the gyroscope.                 |
+| `LGSDSU_ACCEL_MATRIX` | `x,z,-y` (IIO) / `x,y,z` (Legion HID)     | Orientation matrix for the accelerometer.             |
+
+The default matrix depends on which motion backend is active. The IIO
+backend's kernel gyro driver and the Legion HID controller's IMU use
+different physical axis layouts, so the same matrix does not orient both
+correctly; the Legion HID default was derived by cross-checking Lenovo's raw
+axis byte offsets/signs against Handheld Daemon's independently-derived
+Legion Go mapping. Override the variable if your controller still needs
+adjustment.
 
 ### Motion Source
 

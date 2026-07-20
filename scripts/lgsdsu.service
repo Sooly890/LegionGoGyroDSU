@@ -6,8 +6,6 @@ Wants=network-online.target
 [Service]
 Environment=LGSDSU_PORT=26760
 Environment=LGSDSU_IP=127.0.0.1
-Environment=LGSDSU_GYRO_MATRIX=-x,-y,z
-Environment=LGSDSU_ACCEL_MATRIX=x,z,-y
 Type=simple
 RestartSec=1
 User=root

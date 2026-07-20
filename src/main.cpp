@@ -95,8 +95,26 @@ auto main(int argc, char* argv[]) -> int
     int port = 26760;
     std::string ip = "127.0.0.1";
 
-    std::string default_gyro_matrix_str = "-x,-y,z";
-    std::string default_accel_matrix_str = "x,z,-y";
+    auto motion_source = make_motion_source(motion_source_name);
+    if (!motion_source)
+    {
+        std::cerr << "Unable to initialize a motion source\n";
+        return 1;
+    }
+
+    // The Legion controller HID gyro/accelerometer axes already line up with
+    // the pitch/yaw/roll frame this program sends over DSU (cross-checked
+    // against Handheld Daemon's independently derived Legion Go axis
+    // mapping), so they need no further permutation or sign flip here. The
+    // IIO source's kernel gyro driver uses a different physical axis layout
+    // and still needs the historical correction below.
+    const bool is_legion_hid =
+        dynamic_cast<motion::LegionHIDMotionSource*>(motion_source.get()) !=
+        nullptr;
+
+    std::string default_gyro_matrix_str = is_legion_hid ? "x,z,y" : "-x,-y,z";
+    std::string default_accel_matrix_str =
+        is_legion_hid ? "x,y,z" : "x,z,-y";
 
     auto default_gyro_matrix = IIOToDSU(default_gyro_matrix_str, nullptr);
     auto default_accel_matrix = IIOToDSU(default_accel_matrix_str, nullptr);
@@ -158,13 +176,6 @@ auto main(int argc, char* argv[]) -> int
         controller0.gyroscope_yaw; // yaw and roll are flipped
 
     server.StartListeningThread();
-
-    auto motion_source = make_motion_source(motion_source_name);
-    if (!motion_source)
-    {
-        std::cerr << "Unable to initialize a motion source\n";
-        return 1;
-    }
 
     auto epoch = std::chrono::high_resolution_clock::now();
 
