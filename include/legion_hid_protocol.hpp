@@ -26,7 +26,7 @@ auto shutdown_commands(ControllerSide side) -> std::vector<Command>;
 bool decode_report(const Report& report, ControllerSide side,
                    MotionSample& sample, std::uint8_t& timestamp);
 bool has_known_gyro_glitch(const Report& report, ControllerSide side);
-auto connected_controller_side(const Report& report)
+auto controller_side_with_motion_data(const Report& report)
     -> std::optional<ControllerSide>;
 auto timestamp_delta_seconds(std::uint8_t previous, std::uint8_t current)
     -> double;

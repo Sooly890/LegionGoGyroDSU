@@ -200,23 +200,23 @@ bool LegionHIDMotionSource::poll(MotionSample& sample)
             return false;
         }
 
-        const auto connected_side =
-            legion_protocol::connected_controller_side(report);
-        if (!connected_side)
+        const auto side_with_motion =
+            legion_protocol::controller_side_with_motion_data(report);
+        if (!side_with_motion)
         {
             ++missing_controller_reports_;
             if (missing_controller_reports_ < MissingControllerReportLimit)
                 continue;
-            std::cerr << "No connected Legion controller reported by HID\n";
+            std::cerr << "No Legion controller IMU data reported by HID\n";
             if (reconnect())
                 continue;
             return false;
         }
         missing_controller_reports_ = 0;
 
-        if (*connected_side != selected_side_)
+        if (*side_with_motion != selected_side_)
         {
-            if (!switch_selected_side(*connected_side) && !reconnect())
+            if (!switch_selected_side(*side_with_motion) && !reconnect())
                 return false;
             continue;
         }

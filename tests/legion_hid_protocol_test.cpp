@@ -18,6 +18,8 @@ bool near(double actual, double expected)
 {
     return std::abs(actual - expected) < 0.0000001;
 }
+
+constexpr double GyroscopeScale = 0.001065 * 57.29578;
 } // namespace
 
 auto main() -> int
@@ -25,9 +27,8 @@ auto main() -> int
     using namespace motion::legion_protocol;
 
     Report report{};
-    report[0] = 0x74;
+    report[2] = 0x74;
     report[47] = 0xFE;
-    report[11] = 0x80;
     put_be_i16(report, 48, -100);
     put_be_i16(report, 50, 200);
     put_be_i16(report, 52, -300);
@@ -42,18 +43,28 @@ auto main() -> int
     assert(near(sample.accel.x, -200 * 0.00212));
     assert(near(sample.accel.y, 300 * 0.00212));
     assert(near(sample.accel.z, -100 * 0.00212));
-    assert(near(sample.gyro.x, 500 * 0.001065));
-    assert(near(sample.gyro.y, -600 * 0.001065));
-    assert(near(sample.gyro.z, 400 * 0.001065));
+    assert(near(sample.gyro.x, 500 * GyroscopeScale));
+    assert(near(sample.gyro.y, -600 * GyroscopeScale));
+    assert(near(sample.gyro.z, 400 * GyroscopeScale));
     assert(!has_known_gyro_glitch(report, ControllerSide::Right));
-    assert(connected_controller_side(report) == ControllerSide::Right);
+    assert(controller_side_with_motion_data(report) == ControllerSide::Right);
 
-    report[11] = 0;
-    report[10] = 0x80;
-    assert(connected_controller_side(report) == ControllerSide::Left);
-    report[10] = 0;
-    assert(!connected_controller_side(report));
-    report[11] = 0x80;
+    // The HID backend uses the same 0.16 degrees/second per-axis deadzone as
+    // the IIO backend. Two raw counts fall inside it; three remain observable.
+    put_be_i16(report, 56, 2);
+    put_be_i16(report, 58, -2);
+    put_be_i16(report, 54, 3);
+    assert(decode_report(report, ControllerSide::Right, sample, timestamp));
+    assert(near(sample.gyro.x, 0.0));
+    assert(near(sample.gyro.y, 0.0));
+    assert(near(sample.gyro.z, 3 * GyroscopeScale));
+    put_be_i16(report, 54, 400);
+    put_be_i16(report, 56, -500);
+    put_be_i16(report, 58, 600);
+
+    Report empty_report{};
+    empty_report[2] = 0x74;
+    assert(!controller_side_with_motion_data(empty_report));
 
     put_be_i16(report, 56, 255);
     assert(has_known_gyro_glitch(report, ControllerSide::Right));
@@ -62,20 +73,22 @@ auto main() -> int
     put_be_i16(report, 56, -500);
 
     Report left_report{};
-    left_report[0] = 0x74;
+    left_report[2] = 0x74;
     put_be_i16(left_report, 35, 100);
     put_be_i16(left_report, 37, -200);
     put_be_i16(left_report, 39, 300);
     put_be_i16(left_report, 41, -400);
     put_be_i16(left_report, 43, 500);
     put_be_i16(left_report, 45, -600);
+    assert(controller_side_with_motion_data(left_report) ==
+           ControllerSide::Left);
     assert(decode_report(left_report, ControllerSide::Left, sample, timestamp));
     assert(near(sample.accel.x, -100 * 0.00212));
     assert(near(sample.accel.y, -300 * 0.00212));
     assert(near(sample.accel.z, 200 * 0.00212));
-    assert(near(sample.gyro.x, 400 * 0.001065));
-    assert(near(sample.gyro.y, 600 * 0.001065));
-    assert(near(sample.gyro.z, -500 * 0.001065));
+    assert(near(sample.gyro.x, 400 * GyroscopeScale));
+    assert(near(sample.gyro.y, 600 * GyroscopeScale));
+    assert(near(sample.gyro.z, -500 * GyroscopeScale));
 
     assert(near(timestamp_delta_seconds(0xFE, 0x02), 4 * 0.008));
     assert(is_plausible_timestamp_delta(0.008, 0.008));
@@ -96,7 +109,7 @@ auto main() -> int
     assert(shutdown[0][3] == 0x07);
     assert(shutdown[0][5] == 0x01);
 
-    report[0] = 0x01;
+    report[2] = 0x01;
     assert(!decode_report(report, ControllerSide::Right, sample, timestamp));
     return 0;
 }

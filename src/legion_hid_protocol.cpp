@@ -1,17 +1,32 @@
 #include "legion_hid_protocol.hpp"
 
 #include <array>
+#include <cmath>
 
 namespace motion::legion_protocol
 {
 namespace
 {
 constexpr std::uint8_t MotionReportId = 0x74;
-constexpr std::size_t LeftConnectionStatusOffset = 10;
-constexpr std::size_t RightConnectionStatusOffset = 11;
-constexpr std::uint8_t ConnectedStatusMask = 0x80;
+// hidraw prepends the kernel-visible numbered report ID (0x04) as byte 0;
+// the Lenovo-defined motion report tag follows at a fixed offset within that
+// report rather than replacing it.
+constexpr std::size_t MotionReportIdOffset = 2;
+constexpr std::size_t LeftMotionDataBegin = 35;
+constexpr std::size_t LeftMotionDataEnd = 47;
+constexpr std::size_t RightMotionDataBegin = 48;
+constexpr std::size_t RightMotionDataEnd = 60;
 constexpr double AccelerometerScale = 0.00212;
-constexpr double GyroscopeScale = 0.001065;
+// The raw LSB sensitivity here is 0.001065 rad/s, but the DSU protocol (and
+// the rest of this codebase, see iio.cpp's rad2deg conversion) expects
+// gyroscope values in degrees/second. Without this conversion the reported
+// angular velocity was ~57x too small, so clients received motion data but
+// any resulting orientation change was imperceptible.
+constexpr double GyroscopeScale = 0.001065 * 57.29578;
+// Match the existing IIO backend: suppress residual sensor bias below
+// 0.16 degrees/second on each axis. Keeping this alongside the HID scaling
+// makes the unit and the point at which the threshold is applied explicit.
+constexpr double GyroscopeDeadzoneDegreesPerSecond = 0.16;
 
 // Controller-local orientation relative to the normalized motion frame. Keep
 // these signs separate from sensor scaling and the user-configurable DSU
@@ -44,6 +59,21 @@ auto read_be_i16(const Report& report, std::size_t offset) -> std::int16_t
 bool is_known_gyro_glitch(std::int16_t value)
 {
     return value == 254 || value == 255 || value == -254 || value == -255;
+}
+
+bool has_motion_data(const Report& report, std::size_t begin, std::size_t end)
+{
+    for (auto offset = begin; offset < end; ++offset)
+        if (report[offset] != 0)
+            return true;
+    return false;
+}
+
+void apply_gyroscope_deadzone(MotionSample& sample)
+{
+    for (auto* axis : {&sample.gyro.x, &sample.gyro.y, &sample.gyro.z})
+        if (std::abs(*axis) < GyroscopeDeadzoneDegreesPerSecond)
+            *axis = 0.0;
 }
 
 auto enable_imu(std::uint8_t controller) -> Command
@@ -95,7 +125,7 @@ auto shutdown_commands(ControllerSide side) -> std::vector<Command>
 bool decode_report(const Report& report, ControllerSide side,
                    MotionSample& sample, std::uint8_t& timestamp)
 {
-    if (report[0] != MotionReportId)
+    if (report[MotionReportIdOffset] != MotionReportId)
         return false;
 
     if (side == ControllerSide::Left)
@@ -127,12 +157,13 @@ bool decode_report(const Report& report, ControllerSide side,
             read_be_i16(report, 58) * GyroscopeScale * RightGyroscopeSigns[1],
             read_be_i16(report, 54) * GyroscopeScale * RightGyroscopeSigns[2]};
     }
+    apply_gyroscope_deadzone(sample);
     return true;
 }
 
 bool has_known_gyro_glitch(const Report& report, ControllerSide side)
 {
-    if (report[0] != MotionReportId)
+    if (report[MotionReportIdOffset] != MotionReportId)
         return false;
 
     const std::array<std::size_t, 3> offsets =
@@ -145,16 +176,19 @@ bool has_known_gyro_glitch(const Report& report, ControllerSide side)
     return false;
 }
 
-auto connected_controller_side(const Report& report)
+auto controller_side_with_motion_data(const Report& report)
     -> std::optional<ControllerSide>
 {
-    if (report[0] != MotionReportId)
+    if (report[MotionReportIdOffset] != MotionReportId)
         return std::nullopt;
 
-    // The right controller is preferred when both controllers are connected.
-    if ((report[RightConnectionStatusOffset] & ConnectedStatusMask) != 0)
+    // The public report layout documents the IMU payload but no portable
+    // connection-status bits. Treat a non-zero motion payload as available;
+    // gravity makes a valid stationary accelerometer payload non-zero too.
+    // Prefer the right controller when both payloads are present.
+    if (has_motion_data(report, RightMotionDataBegin, RightMotionDataEnd))
         return ControllerSide::Right;
-    if ((report[LeftConnectionStatusOffset] & ConnectedStatusMask) != 0)
+    if (has_motion_data(report, LeftMotionDataBegin, LeftMotionDataEnd))
         return ControllerSide::Left;
     return std::nullopt;
 }
