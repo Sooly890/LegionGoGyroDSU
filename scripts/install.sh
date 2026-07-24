@@ -18,31 +18,42 @@ if sudo test -f /etc/systemd/system/lgsdsu.service; then
     sudo systemctl daemon-reload
 fi
 
+if sudo test -f /etc/systemd/system/lgdsu.service; then
+    sudo systemctl disable --now lgdsu.service >/dev/null 2>&1 || true
+    sudo rm -f /etc/systemd/system/lgdsu.service
+    sudo systemctl daemon-reload
+fi
+
 # These files are optional, including the legacy fix-iio.conf path.
 sudo rm -f /etc/modprobe.d/fix-iio.conf
 sudo rm -f /etc/modules-load.d/fix-iio-sensor-hub.conf
 sudo rm -rf /LegionGoSGyroDSU
+sudo rm -rf /LegionGoGyroDSU
 
-echo "Installing LegionGoSGyroDSU..."
+echo "Installing LegionGoGyroDSU..."
 
-sudo mkdir -p /LegionGoSGyroDSU
-cd /LegionGoSGyroDSU
+sudo mkdir -p /LegionGoGyroDSU
+cd /LegionGoGyroDSU
 
-sudo wget https://github.com/Sooly890/LegionGoSGyroDSU/releases/latest/download/LegionGoSGyroDSU.tar.gz
+#sudo wget https://github.com/Sooly890/LegionGoSGyroDSU/releases/latest/download/LegionGoSGyroDSU.tar.gz
+sudo wget https://github.com/Sooly890/LegionGoGyroDSU/releases/latest/download/LegionGoGyroDSU.tar.gz
 
-sudo tar -xzvf LegionGoSGyroDSU.tar.gz
-sudo rm -f LegionGoSGyroDSU.tar.gz
+sudo tar -xzvf LegionGoGyroDSU.tar.gz
+sudo rm -f LegionGoGyroDSU.tar.gz
 
 # fix a mistake I made in packaging, probably will fix it later
 if sudo test -f LegionGoSGyro; then
     sudo mv LegionGoSGyro LegionGoSGyroDSU
 fi
-sudo chmod +x LegionGoSGyroDSU
+if sudo test -f LegionGoGyro; then
+    sudo mv LegionGoGyro LegionGoGyroDSU
+fi
+sudo chmod +x LegionGoGyroDSU
 
-sudo cp lgsdsu.service /etc/systemd/system/
+sudo cp lgdsu.service /etc/systemd/system/
 
 sudo systemctl daemon-reload
-sudo systemctl enable --now lgsdsu.service
+sudo systemctl enable --now lgdsu.service
 
 sudo chmod +x check.sh uninstall.sh install.sh
 
