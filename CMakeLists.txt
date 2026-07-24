@@ -16,6 +16,10 @@ set(SOURCES
     src/main.cpp
     src/dsu.cpp
     src/iio.cpp
+    src/motion_source.cpp
+    src/iio_motion_source.cpp
+    src/legion_hid_motion_source.cpp
+    src/legion_hid_protocol.cpp
 )
 
 add_executable(LegionGoSGyro ${SOURCES})
@@ -39,3 +43,16 @@ target_compile_options(LegionGoSGyro PRIVATE
 )
 
 target_link_libraries(LegionGoSGyro PRIVATE Threads::Threads ${LIBIIO_LIBRARIES})
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(legion_hid_protocol_test
+        tests/legion_hid_protocol_test.cpp
+        src/legion_hid_protocol.cpp
+        src/motion_source.cpp
+    )
+    target_include_directories(legion_hid_protocol_test PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+    )
+    add_test(NAME legion_hid_protocol_test COMMAND legion_hid_protocol_test)
+endif()
