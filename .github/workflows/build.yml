@@ -19,11 +19,11 @@ jobs:
         with:
           # Name of the artifact to upload.
           # Optional. Default is 'artifact'
-          name: LegionGoSGyroDSU.tar.gz
+          name: LegionGoGyroDSU.tar.gz
       
           # A file, directory or wildcard pattern that describes what to upload
           # Required.
-          path: LegionGoSGyroDSU.tar.gz
+          path: LegionGoGyroDSU.tar.gz
       
           # The desired behavior if no files are found using the provided path.
           # Available Options:
