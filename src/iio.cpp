@@ -22,13 +22,13 @@ IIOMotion::IIOMotion()
         return;
     }
 
-    unsigned int ndev = iio_context_get_devices_count(ctx);
+    /*unsigned int ndev = iio_context_get_devices_count(ctx);
     std::cout << "all devices:" << std::endl;
     for (unsigned int i = 0; i < ndev; ++i)
     {
         struct iio_device* dev = iio_context_get_device(ctx, i);
         std::cout << iio_device_get_name(dev) << std::endl;
-    }
+    }*/
 
     gyro_dev = iio_context_find_device(ctx, "gyro_3d");
     accel_dev = iio_context_find_device(ctx, "accel_3d");
