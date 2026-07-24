@@ -86,15 +86,15 @@ auto main(int argc, char* argv[]) -> int
     } catch (const std::exception& error)
     {
         std::cerr << error.what() << '\n'
-                  << "Usage: LegionGoSGyro "
+                  << "Usage: LegionGoGyro "
                      "[--motion-source=auto|iio|legion-hid]\n";
         return 2;
     }
 
-    const char* port_str = std::getenv("LGSDSU_PORT");
-    const char* ip_str = std::getenv("LGSDSU_IP");
-    const char* gyro_matrix_cstr = std::getenv("LGSDSU_GYRO_MATRIX");
-    const char* accel_matrix_cstr = std::getenv("LGSDSU_ACCEL_MATRIX");
+    const char* port_str = std::getenv("LGDSU_PORT");
+    const char* ip_str = std::getenv("LGDSU_IP");
+    const char* gyro_matrix_cstr = std::getenv("LGDSU_GYRO_MATRIX");
+    const char* accel_matrix_cstr = std::getenv("LGDSU_ACCEL_MATRIX");
 
     int port = 26760;
     std::string ip = "127.0.0.1";
