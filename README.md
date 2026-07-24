@@ -1,4 +1,4 @@
-# LegionGoSGyroDSU
+# LegionGoGyroDSU
 
 A DSU motion server for the Lenovo Legion Go S and Legion Go 2 on Linux. It
 publishes gyroscope and accelerometer data for applications that support the
@@ -21,13 +21,13 @@ IDs:
 
 ## Installation
 
-To install LegionGoSGyroDSU, ensure you have a user password set (run `passwd` if not), then execute the following command:
+To install LegionGoGyroDSU, ensure you have a user password set (run `passwd` if not), then execute the following command:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Sooly890/LegionGoSGyroDSU/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Sooly890/LegionGoGyroDSU/main/scripts/install.sh | bash
 ```
 
-The project is installed to `/LegionGoSGyroDSU`. Reboot after installation so
+The project is installed to `/LegionGoGyroDSU`. Reboot after installation so
 that the IIO driver configuration is applied on the Legion Go S. The installed
 systemd service runs as root, which also gives it access to the Legion Go 2's
 `/dev/hidraw*` controller interface.
@@ -37,17 +37,17 @@ systemd service runs as root, which also gives it access to the Legion Go 2's
 You can customize the port, IP, and sensor orientation by editing the service file:
 
 ```bash
-sudo nano /etc/systemd/system/lgsdsu.service
+sudo nano /etc/systemd/system/lgdsu.service
 ```
 
 ### Available Options
 
 | Environment Variable  | Default Value                            | Description                                           |
 | --------------------- | ----------------------------------------- | ----------------------------------------------------- |
-| `LGSDSU_PORT`         | `26760`                                   | The port used by the DSU server.                      |
-| `LGSDSU_IP`           | `127.0.0.1`                               | Bind IP. Use `0.0.0.0` to allow external connections. |
-| `LGSDSU_GYRO_MATRIX`  | `-x,-y,z` (IIO) / `x,z,y` (Legion HID)    | Orientation matrix for the gyroscope.                 |
-| `LGSDSU_ACCEL_MATRIX` | `x,z,-y` (IIO) / `x,y,z` (Legion HID)     | Orientation matrix for the accelerometer.             |
+| `LGDSU_PORT`         | `26760`                                   | The port used by the DSU server.                      |
+| `LGDSU_IP`           | `127.0.0.1`                               | Bind IP. Use `0.0.0.0` to allow external connections. |
+| `LGDSU_GYRO_MATRIX`  | `-x,-y,z` (IIO) / `x,z,y` (Legion HID)    | Orientation matrix for the gyroscope.                 |
+| `LGDSU_ACCEL_MATRIX` | `x,z,-y` (IIO) / `x,y,z` (Legion HID)     | Orientation matrix for the accelerometer.             |
 
 The default matrix depends on which motion backend is active. The IIO
 backend's kernel gyro driver and the Legion HID controller's IMU use
@@ -72,8 +72,8 @@ S without requiring a command-line option.
 To select a backend explicitly, pass:
 
 ```bash
-sudo /LegionGoSGyroDSU/LegionGoSGyroDSU --motion-source=iio
-sudo /LegionGoSGyroDSU/LegionGoSGyroDSU --motion-source=legion-hid
+sudo /LegionGoGyroDSU/LegionGoGyroDSU --motion-source=iio
+sudo /LegionGoGyroDSU/LegionGoGyroDSU --motion-source=legion-hid
 ```
 
 `--motion-source=legion-hid` also falls back to IIO if no usable Legion HID
@@ -83,14 +83,14 @@ To set an explicit backend for the installed service, append the option to its
 `ExecStart` line. For example:
 
 ```ini
-ExecStart=/LegionGoSGyroDSU/LegionGoSGyroDSU --motion-source=legion-hid
+ExecStart=/LegionGoGyroDSU/LegionGoGyroDSU --motion-source=legion-hid
 ```
 
 After making changes, apply them by running:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl restart lgsdsu.service
+sudo systemctl restart lgdsu.service
 ```
 
 _Note: Updating the software will overwrite these changes._
@@ -145,7 +145,7 @@ same HID interface, stop it temporarily while testing.
 Previously, IIO devices (gyro/accel) sometimes failed to appear. This has been fixed by forcing the `hid_sensor_hub` module to load. If you still encounter issues, you can run:
 
 ```bash
-/LegionGoSGyroDSU/check.sh
+/LegionGoGyroDSU/check.sh
 ```
 
 **Technical reason:** The `hid_sensor_hub` kernel module was sometimes lazily loading, so `hid-generic` never left it, I don't know why. The Legion Go S's USB device actually wants `hid-sensor-hub` to load, however the sometimes not working bit was when it didn't request it, I don't know why this is either. The fix simply adds something that requests it to load earlier, so therefore `hid_sensor_hub` does remove `hid-generic`.
@@ -162,13 +162,13 @@ If you cannot determine the error, run the application directly in a terminal.
 
 ```bash
 # Stop the background service
-sudo systemctl stop lgsdsu
+sudo systemctl stop lgdsu
 
 # Run it in terminal
-sudo /LegionGoSGyroDSU/LegionGoSGyroDSU --motion-source=auto
+sudo /LegionGoGyroDSU/LegionGoGyroDSU --motion-source=auto
 
-# Optionally, start LegionGoSGyroDSU again
-sudo systemctl start lgsdsu
+# Optionally, start LegionGoGyroDSU again
+sudo systemctl start lgdsu
 ```
 
 ### Bind port already in use/segfault 
@@ -180,17 +180,17 @@ Make sure nothing is using the default port (26760), most commonly SteamDeckDSU 
 If you wish to remove the project, run:
 
 ```bash
-sudo /LegionGoSGyroDSU/uninstall.sh
+sudo /LegionGoGyroDSU/uninstall.sh
 ```
 
 ## Development & Building
 
-Building on either handheld is not recommended. Use another Arch Linux machine:
+Building on either handheld is not recommended. Use another Linux machine:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Sooly890/LegionGoSGyroDSU
-cd LegionGoSGyroDSU
+git clone https://github.com/Sooly890/LegionGoGyroDSU
+cd LegionGoGyroDSU
 
 # Install dependencies
 sudo pacman -S asio libiio
