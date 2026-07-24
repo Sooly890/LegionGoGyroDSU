@@ -1,6 +1,6 @@
 #!/bin/bash
 
-sudo systemctl status lgsdsu.service
+sudo systemctl status lgdsu.service
 
 lines=$(ls -1 /sys/bus/iio/devices | grep iio:device | wc -l)
 
