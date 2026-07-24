@@ -10,7 +10,7 @@ Type=simple
 RestartSec=1
 User=root
 Restart=on-failure
-ExecStart=/LegionGoSGyroDSU/LegionGoGyroDSU
+ExecStart=/LegionGoGyroDSU/LegionGoGyroDSU
 WorkingDirectory=/LegionGoGyroDSU
 
 [Install]
