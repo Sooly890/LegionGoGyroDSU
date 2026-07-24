@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project (LegionGoSGyro)
+project (LegionGoGyro)
 
 set (CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,9 +22,9 @@ set(SOURCES
     src/legion_hid_protocol.cpp
 )
 
-add_executable(LegionGoSGyro ${SOURCES})
+add_executable(LegionGoGyro ${SOURCES})
 
-target_include_directories(LegionGoSGyro
+target_include_directories(LegionGoGyro
     PUBLIC
         ${PROJECT_SOURCE_DIR}/include
         ${PROJECT_SOURCE_DIR}/CRCpp/inc
@@ -37,12 +37,12 @@ pkg_check_modules(LIBIIO REQUIRED libiio)
 
 include_directories(${LIBIIO_INCLUDE_DIRS})
 
-target_compile_options(LegionGoSGyro PRIVATE
+target_compile_options(LegionGoGyro PRIVATE
     $<$<CONFIG:Release>:-O2>
     $<$<CONFIG:Debug>:-O0 -g>
 )
 
-target_link_libraries(LegionGoSGyro PRIVATE Threads::Threads ${LIBIIO_LIBRARIES})
+target_link_libraries(LegionGoGyro PRIVATE Threads::Threads ${LIBIIO_LIBRARIES})
 
 include(CTest)
 if(BUILD_TESTING)
