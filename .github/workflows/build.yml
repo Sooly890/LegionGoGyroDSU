@@ -6,10 +6,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Install Asio
+      - name: Install asio and libiio
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasio-dev
+          sudo apt-get install -y libasio-dev libiio-dev
       - name: Build and Package
         run: |
           bash scripts/package.sh
