@@ -113,8 +113,8 @@ Stop the service and run the program in a terminal to see which backend is
 selected:
 
 ```bash
-sudo systemctl stop lgsdsu
-sudo /LegionGoSGyroDSU/LegionGoSGyroDSU --motion-source=auto
+sudo systemctl stop lgdsu
+sudo /LegionGoGyroDSU/LegionGoGyroDSU --motion-source=auto
 ```
 
 Successful HID selection prints the selected `/dev/hidraw*` path. If HID is not
