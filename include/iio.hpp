@@ -120,9 +120,9 @@ class IIOMotion
     static auto GeneralRead(iio_channel* chns[3], iio_buffer* buffer,
                             const Vec3& scale, double deadzone) -> Vec3;
 
-    iio_context* ctx;
-    iio_device* gyro_dev;
-    iio_device* accel_dev;
+    iio_context* ctx = nullptr;
+    iio_device* gyro_dev = nullptr;
+    iio_device* accel_dev = nullptr;
 
     iio_channel* gyro_chns[3];
     iio_channel* accel_chns[3];
@@ -133,8 +133,8 @@ class IIOMotion
     Vec3 gyro_freq_;
     Vec3 accel_freq_;
 
-    iio_buffer* gyro_buf;
-    iio_buffer* accel_buf;
+    iio_buffer* gyro_buf = nullptr;
+    iio_buffer* accel_buf = nullptr;
 
     inline static const std::vector<std::string> gyro_chn_names = {"anglvel_x",
                                                                    "anglvel_y",

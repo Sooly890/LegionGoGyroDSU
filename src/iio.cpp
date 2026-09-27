@@ -146,9 +146,18 @@ IIOMotion::IIOMotion()
 }
 IIOMotion::~IIOMotion()
 {
-    iio_buffer_destroy(gyro_buf);
-    iio_buffer_destroy(accel_buf);
-    iio_context_destroy(ctx);
+    if (gyro_buf != nullptr)
+    {
+        iio_buffer_destroy(gyro_buf);
+    }
+    if (accel_buf != nullptr)
+    {
+        iio_buffer_destroy(accel_buf);
+    }
+    if (ctx != nullptr)
+    {
+        iio_context_destroy(ctx);
+    }
 }
 
 void IIOMotion::ReadChannelAttr(iio_channel* chn, const std::string& attr,
